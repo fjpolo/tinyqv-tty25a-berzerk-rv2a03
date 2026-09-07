@@ -12,3 +12,10 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Archives and toolchains
+*.tar.gz
+*.tar
+*.zip
+*.7z
+
