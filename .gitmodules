@@ -10,3 +10,11 @@
 	path = tinyQV-sdk-fjpolo
 	url = https://github.com/fjpolo/tinyQV-sdk-fjpolo
 	branch = main
+[submodule "micropython"]
+	path = micropython
+	url = https://github.com/MichaelBell/micropython
+	branch = tinyqv-sky25a
+[submodule "tinyQV-projects"]
+	path = tinyQV-projects
+	url = https://github.com/MichaelBell/tinyQV-projects
+	branch = main
