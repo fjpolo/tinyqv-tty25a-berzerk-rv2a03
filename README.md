@@ -192,9 +192,16 @@ The SDK provides the libraries and linker scripts to write C code for TinyQV.
    cd tinyQV-sdk-fjpolo
    make
    ```
-   This builds `start.o`, `tinyQV.a`, and `tinyQV-sim.a`.
+   This builds `start.o`, `tinyQV.a`, `tinyQV-sim.a`, `tinyQV-asteroids.a`, and `tinyQV-berzerk.a` (which includes the `rv2a03.o` driver).
 
-2. **Build an Application**:
+2. **RV2A03 NES Audio Driver (`peripherals/rv2a03.h`)**:
+   The SDK includes a modular C driver for the RV2A03 APU at peripheral index #14 (`0x8000380`):
+   - `rv2a03_regs.h`: Register memory map (`RV2A03_SQ1_VOL`, `RV2A03_TRI_LINEAR`, `RV2A03_SND_CHN`, etc.).
+   - `rv2a03_init()`: Configures peripheral enable, clock divider, and clears sound channels.
+   - `rv2a03_play_square()`, `rv2a03_play_triangle()`, `rv2a03_play_noise()`: High-level channel note playback.
+   - `rv2a03_read_sample()`: Reads 16-bit mixed audio sample from hardware ports (`0x24` / `0x25`).
+
+3. **Build an Application**:
    ```bash
    cd example-project
    make
@@ -240,21 +247,28 @@ cd ttsky25a-tinyQV-fjpolo-rv2a03
 This submodule provides a suite of sample applications demonstrating various TinyQV features, peripherals, and graphics.
 
 #### Key Examples
+- `rv2a03_test/`: **RV2A03 Hardware Verification & Chiptune Demo**. Directly translates the 5 cocotb tests (`test_sq1_channel`, `test_sq2_channel`, `test_tri_channel`, `test_noise_channel`, and `test_all_channels_together`) into self-checking C code reporting test pass/fail over UART, validates sample generation and readback, and plays an authentic NES chiptune melody!
 - `donut/`: Animated ASCII 3D donut rendered over UART.
 - `vga_gfx/` & `vga_console/`: Hardware-accelerated graphics and text console demos using the PRISM/VGA peripheral.
 - `cellular/`: Conway's Game of Life cellular automaton.
 - `ledstrip/`: WS2812B NeoPixel LED strip controller.
 - `hello/`: Minimal UART "Hello, World!" example.
 
-#### Building a Project (e.g., `donut`)
+#### Building a Project (e.g., `rv2a03_test` or `donut`)
 Make sure the SDK runtime libraries are compiled first (`make` in `tinyQV-sdk-fjpolo`), then build:
 
+```bash
+cd tinyQV-projects/rv2a03_test
+make
+```
+
+Or for `donut`:
 ```bash
 cd tinyQV-projects/donut
 make TINYQV_SDK=../../tinyQV-sdk-fjpolo
 ```
 
-This generates `donut.bin` and `donut.hex` ready to upload with the [TinyQV Web Programmer](https://program.tinyqv.com).
+This generates `.elf`, `.bin`, and `.hex` binaries ready to upload with the [TinyQV Web Programmer](https://program.tinyqv.com).
 
 ---
 
