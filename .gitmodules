@@ -1,0 +1,12 @@
+[submodule "ttsky25a-tinyQV-fjpolo-rv2a03"]
+	path = ttsky25a-tinyQV-fjpolo-rv2a03
+	url = https://github.com/fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03
+	branch = fjpolo/RV2A03
+[submodule "tinyqv-rv2a03"]
+	path = tinyqv-rv2a03
+	url = https://github.com/fjpolo/tinyqv-rv2a03
+	branch = main
+[submodule "tinyQV-sdk-fjpolo"]
+	path = tinyQV-sdk-fjpolo
+	url = https://github.com/fjpolo/tinyQV-sdk-fjpolo
+	branch = main
