@@ -16,5 +16,5 @@
 	branch = tinyqv-sky25a
 [submodule "tinyQV-projects"]
 	path = tinyQV-projects
-	url = https://github.com/MichaelBell/tinyQV-projects
-	branch = main
+	url = https://github.com/fjpolo/tinyQV-projects
+	branch = dev/20290907
