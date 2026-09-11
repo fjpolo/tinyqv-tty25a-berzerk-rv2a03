@@ -45,20 +45,24 @@ function Get-AvailablePorts {
     $ports = [System.Collections.Generic.List[PSCustomObject]]::new()
     $pnpDevices = @()
     try {
-        $pnpDevices = Get-PnpDevice -Class Ports -ErrorAction SilentlyContinue | Where-Object { $_.Present -eq $true }
+        $pnpDevices = @(Get-PnpDevice -Class Ports -ErrorAction SilentlyContinue | Where-Object { $_.Present -eq $true })
     } catch { }
 
-    $allNames = [System.IO.Ports.SerialPort]::GetPortNames() | Sort-Object -Unique
+    $allNames = @([System.IO.Ports.SerialPort]::GetPortNames() | Sort-Object -Unique)
 
     foreach ($name in $allNames) {
         $desc = "Serial Port"
         $isUsb = $false
-        $match = $pnpDevices | Where-Object { $_.FriendlyName -match "\($name\)" }
+        $match = $pnpDevices | Where-Object { $_.FriendlyName -like "*($name)*" }
         if ($match) {
             $desc = $match.FriendlyName
-            if ($match.InstanceId -match "USB|FTDI|VID_") {
+            if ($match.InstanceId -match "USB|FTDI|VID_" -or $match.Manufacturer -match "FTDI") {
                 $isUsb = $true
             }
+        }
+        if ($name -eq "COM17") {
+            $isUsb = $true
+            if ($desc -eq "Serial Port") { $desc = "Tang Nano 20K USB-UART (COM17)" }
         }
         $ports.Add([PSCustomObject]@{
             Port        = $name
@@ -72,7 +76,7 @@ function Get-AvailablePorts {
 # 1. Handle -List
 if ($List) {
     Write-Host "`n=== Available Serial COM Ports ===" -ForegroundColor Cyan
-    $available = Get-AvailablePorts
+    $available = @(Get-AvailablePorts)
     if ($available.Count -eq 0) {
         Write-Host "No COM ports detected." -ForegroundColor Yellow
     } else {
@@ -84,35 +88,42 @@ if ($List) {
 # 2. Auto-detect Port if not supplied
 if (-not $Port) {
     Write-Host "Auto-detecting Tang Nano 20K USB-UART port..." -ForegroundColor Cyan
-    $available = Get-AvailablePorts
-    
-    # Priority 1: USB Serial ports (excluding bluetooth)
-    $usbPorts = $available | Where-Object { $_.IsUsb -and $_.Description -notmatch "Bluetooth" }
-    
-    if ($usbPorts.Count -eq 1) {
-        $Port = $usbPorts[0].Port
-        Write-Host "[OK] Detected $($usbPorts[0].Description)" -ForegroundColor Green
-    } elseif ($usbPorts.Count -gt 1) {
-        Write-Host "Multiple USB serial devices found:" -ForegroundColor Yellow
-        $usbPorts | Format-Table -AutoSize
-        # Pick FTDI or highest COM port
-        $ftdi = $usbPorts | Where-Object { $_.Description -match "FTDI|USB Serial Port" } | Select-Object -Last 1
-        if ($ftdi) {
-            $Port = $ftdi.Port
-            Write-Host "Selecting likely FPGA port: $Port ($($ftdi.Description))" -ForegroundColor Cyan
-        } else {
-            $Port = $usbPorts[0].Port
-            Write-Host "Selecting first USB port: $Port" -ForegroundColor Cyan
-        }
+    $available = @(Get-AvailablePorts)
+
+    # Priority 1: Check if Tang Nano 20K port (COM17) is present
+    $nanoPort = $available | Where-Object { $_.Port -eq "COM17" }
+    if ($nanoPort) {
+        $Port = $nanoPort.Port
+        Write-Host "[OK] Detected Tang Nano 20K: $Port ($($nanoPort.Description))" -ForegroundColor Green
     } else {
-        # Fallback to any non-bluetooth port
-        $nonBt = $available | Where-Object { $_.Description -notmatch "Bluetooth" -and $_.Port -ne "COM3" }
-        if ($nonBt.Count -gt 0) {
-            $Port = $nonBt[0].Port
-            Write-Host "Selected port: $Port ($($nonBt[0].Description))" -ForegroundColor Yellow
+        # Priority 2: USB Serial ports (excluding bluetooth)
+        $usbPorts = @($available | Where-Object { $_.IsUsb -and $_.Description -notmatch "Bluetooth" })
+
+        if ($usbPorts.Count -eq 1) {
+            $Port = $usbPorts[0].Port
+            Write-Host "[OK] Detected $($usbPorts[0].Description)" -ForegroundColor Green
+        } elseif ($usbPorts.Count -gt 1) {
+            Write-Host "Multiple USB serial devices found:" -ForegroundColor Yellow
+            $usbPorts | Format-Table -AutoSize
+            # Pick FTDI or highest COM port
+            $ftdi = $usbPorts | Where-Object { $_.Description -match "FTDI|USB Serial Port" } | Select-Object -Last 1
+            if ($ftdi) {
+                $Port = $ftdi.Port
+                Write-Host "Selecting likely FPGA port: $Port ($($ftdi.Description))" -ForegroundColor Cyan
+            } else {
+                $Port = $usbPorts[0].Port
+                Write-Host "Selecting first USB port: $Port" -ForegroundColor Cyan
+            }
         } else {
-            Write-Host "[ERROR] No suitable serial ports found. Please connect your Tang Nano 20K." -ForegroundColor Red
-            exit 1
+            # Fallback to any non-bluetooth port
+            $nonBt = @($available | Where-Object { $_.Description -notmatch "Bluetooth" -and $_.Port -ne "COM3" })
+            if ($nonBt.Count -gt 0) {
+                $Port = $nonBt[0].Port
+                Write-Host "Selected port: $Port ($($nonBt[0].Description))" -ForegroundColor Yellow
+            } else {
+                Write-Host "[ERROR] No suitable serial ports found. Please connect your Tang Nano 20K." -ForegroundColor Red
+                exit 1
+            }
         }
     }
 }
