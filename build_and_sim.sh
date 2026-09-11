@@ -9,6 +9,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROG="${1:-rv2a03_test}"
 WAVES_ARG="${2:-1}"
 
+CLEAN_BUILD=0
+for arg in "$@"; do
+    if [ "$arg" = "--clean" ] || [ "$arg" = "-c" ]; then
+        CLEAN_BUILD=1
+    fi
+done
+
 VCD=0
 WAVES=0
 if [ "$WAVES_ARG" = "1" ] || [ "$WAVES_ARG" = "vcd" ]; then
@@ -82,8 +89,20 @@ else
     echo "WARNING: No .venv found. Running with system Python environment."
 fi
 
-# Clean previous simulation results and build cache
-rm -rf sim_build results.xml
+# Clean previous simulation results (results.xml must be removed to force test execution)
+rm -f results.xml
+if [ "$CLEAN_BUILD" -eq 1 ]; then
+    echo "Clean build requested: removing sim_build cache..."
+    rm -rf sim_build
+fi
+
+if [ ! -f "sim_build/rtl/sim.vvp" ]; then
+    echo "Compiling full SoC RTL netlist with Icarus Verilog..."
+    echo "(Note: First-time elaboration takes ~3-4 minutes on WSL. Please let it finish without interrupting.)"
+else
+    echo "Using existing compiled SoC model (incremental build: skipping RTL compile)."
+fi
+
 export PYTHONUNBUFFERED=1
 make -f test_prog.mk PROG="${PROG}" VCD="${VCD}" WAVES="${WAVES}"
 
