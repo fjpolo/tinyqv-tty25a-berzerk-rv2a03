@@ -83,10 +83,39 @@ FPGA/GOWIN/nano20k/
 
 ---
 
-## 4. How to Build in Gowin EDA
+## 4. How to Build
 
-### Step 1: Open the Project
-1. Launch **Gowin EDA** (v1.9.8, v1.9.9, or higher).
+### Option A: Automated Command Line (Recommended)
+
+From the workspace root or from this directory, run the build script:
+
+```powershell
+# From workspace root (Windows Command Prompt or PowerShell):
+.\build_gowin.bat
+
+# Or directly from PowerShell:
+.\build_gowin.bat -Clean              # Clean and rebuild from scratch
+.\build_gowin.bat -Target syn         # Logic synthesis only
+.\build_gowin.bat -Scan               # Detect connected USB-JTAG cables and FPGA
+.\build_gowin.bat -Flash sram         # Build and load directly to Tang Nano 20K SRAM
+.\build_gowin.bat -Flash flash        # Build and write to persistent onboard embFlash
+```
+
+From Linux / Git Bash / WSL:
+```bash
+./build_gowin.sh                      # Full synthesis, PnR, and bitstream generation
+./build_gowin.sh syn                  # Synthesis only
+./build_gowin.sh clean                # Clean build directory
+```
+
+The script automatically locates your Gowin installation (e.g., `C:\Gowin\Gowin_V1.9.12_x64`), configures all options, runs `gw_sh`, and outputs the bitstream to `impl/pnr/nano20k.fs`.
+
+---
+
+### Option B: Gowin EDA GUI
+
+#### Step 1: Open the Project
+1. Launch **Gowin EDA** (v1.9.8, v1.9.9, v1.9.12 or higher).
 2. Go to **File $\rightarrow$ Open Project...**.
 3. Select `FPGA/GOWIN/nano20k/nano20k.gprj`.
 4. Verify that the target device is set to:
@@ -95,10 +124,10 @@ FPGA/GOWIN/nano20k/
    - **Package**: `QN88`
    - **Part Number**: `GW2AR-LV18QN88C8/I7`
 
-### Step 2: Synthesize and Place & Route
+#### Step 2: Synthesize and Place & Route
 1. In the **Process** pane on the left, double-click **Place & Route** (or right-click **Place & Route** $\rightarrow$ **Rerun All**).
 2. Gowin EDA will synthesize the design, place and route it, and generate the bitstream file:
-   `nano20k/impl/pnr/nano20k.fs`.
+   `impl/pnr/nano20k.fs`.
 
 ---
 

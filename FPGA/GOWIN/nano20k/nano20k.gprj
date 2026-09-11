@@ -39,5 +39,6 @@
     <OptionList>
         <Option type="top_module" value="tangnano20k_top"/>
         <Option type="verilog_language" value="sysv-2017"/>
+        <Option type="use_sspi_as_gpio" value="1"/>
     </OptionList>
 </Project>
