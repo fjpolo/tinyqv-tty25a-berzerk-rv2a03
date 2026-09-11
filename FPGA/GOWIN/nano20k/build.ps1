@@ -12,9 +12,18 @@
 .PARAMETER Clean
     Cleans the 'impl/' build directory and temporary project files before building.
 
+.PARAMETER FlashMode
+    Flash mode: 'sram' (fast volatile SRAM load) or 'flash' (persistent external SPI Flash programming).
+
 .PARAMETER Flash
-    Programs the board after building (or standalone if bitstream exists):
-    'sram' (fast volatile RAM load) or 'flash' (persistent onboard embFlash programming).
+    Switch flag to enable board programming after building (or standalone if -NoBuild specified).
+    Also accepts: -Flash sram or -Flash flash directly.
+
+.PARAMETER NoBuild
+    Skips synthesis and PnR, flashing the existing bitstream directly.
+
+.PARAMETER Cable
+    JTAG programmer cable name (default: 'USB Debugger A' for Tang Nano 20K).
 
 .PARAMETER Scan
     Scans for connected Gowin USB cables and FPGA JTAG devices.
@@ -35,12 +44,16 @@
     # Run logic synthesis only
 
 .EXAMPLE
+    .\build.ps1 -FlashMode flash -Flash
+    # Build and write bitstream to Tang Nano 20K persistent external SPI Flash
+
+.EXAMPLE
     .\build.ps1 -Flash sram
     # Build and load bitstream directly into Tang Nano 20K SRAM
 
 .EXAMPLE
-    .\build.ps1 -Flash flash
-    # Build and write bitstream to Tang Nano 20K persistent flash memory
+    .\build.ps1 -NoBuild -FlashMode flash
+    # Flash existing bitstream to persistent SPI Flash without rebuilding
 
 .EXAMPLE
     .\build.ps1 -Scan
@@ -54,13 +67,35 @@ param (
 
     [switch]$Clean,
 
-    [ValidateSet("sram", "flash", "")]
-    [string]$Flash = "",
+    [ValidateSet("sram", "flash")]
+    [string]$FlashMode = "sram",
+
+    [switch]$Flash,
+
+    [string]$Cable = "USB Debugger A",
+
+    [switch]$NoBuild,
 
     [switch]$Scan,
 
-    [string]$GowinPath = ""
+    [string]$GowinPath = "",
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$RemainingArgs
 )
+
+# Flexible handling of -Flash and -FlashMode
+if ($RemainingArgs) {
+    foreach ($arg in $RemainingArgs) {
+        if ($arg -in @("sram", "flash")) {
+            $FlashMode = $arg
+            $Flash = $true
+        }
+    }
+}
+if ($PSBoundParameters.ContainsKey('FlashMode')) {
+    $Flash = $true
+}
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -143,7 +178,9 @@ if ($Scan) {
     }
     Write-Host "`nScanning for connected Gowin USB cables and devices..." -ForegroundColor Yellow
     & $ProgCli --scan-cables
-    & $ProgCli --scan
+    $CableArgs = @()
+    if ($Cable) { $CableArgs = @("--cable", $Cable) }
+    & $ProgCli @CableArgs --scan
     exit 0
 }
 
@@ -166,43 +203,47 @@ if ($Clean) {
 # -----------------------------------------------------------------------------
 # 4. Run Build Process
 # -----------------------------------------------------------------------------
-$TclScript = Join-Path $ScriptDir "build.tcl"
-if (-not (Test-Path $TclScript)) {
-    Write-Host "[ERROR] build.tcl not found at $TclScript" -ForegroundColor Red
-    exit 1
-}
-
-$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-
-Write-Host "`n===> Starting Gowin Build Target: [$Target]..." -ForegroundColor Magenta
-& $GwSh $TclScript $Target
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n[ERROR] Gowin build failed with exit code $LASTEXITCODE!" -ForegroundColor Red
-    exit $LASTEXITCODE
-}
-
-$Stopwatch.Stop()
-$Duration = [math]::Round($Stopwatch.Elapsed.TotalSeconds, 1)
-
-# -----------------------------------------------------------------------------
-# 5. Check Output Bitstream
-# -----------------------------------------------------------------------------
 $BitstreamPath = Join-Path $ScriptDir "impl\pnr\nano20k.fs"
 
-if ($Target -eq "all") {
-    if (Test-Path $BitstreamPath) {
-        $FileSize = (Get-Item $BitstreamPath).Length
-        $FileSizeKb = [math]::Round($FileSize / 1024, 1)
-        Write-Host "`n============================================================" -ForegroundColor Green
-        Write-Host "  BUILD SUCCESSFUL ($Duration s)" -ForegroundColor Green
-        Write-Host "  Bitstream: $BitstreamPath ($FileSizeKb KB)" -ForegroundColor Green
-        Write-Host "============================================================" -ForegroundColor Green
+if (-not $NoBuild) {
+    $TclScript = Join-Path $ScriptDir "build.tcl"
+    if (-not (Test-Path $TclScript)) {
+        Write-Host "[ERROR] build.tcl not found at $TclScript" -ForegroundColor Red
+        exit 1
+    }
+
+    $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+    Write-Host "`n===> Starting Gowin Build Target: [$Target]..." -ForegroundColor Magenta
+    & $GwSh $TclScript $Target
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`n[ERROR] Gowin build failed with exit code $LASTEXITCODE!" -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+
+    $Stopwatch.Stop()
+    $Duration = [math]::Round($Stopwatch.Elapsed.TotalSeconds, 1)
+
+    # -----------------------------------------------------------------------------
+    # 5. Check Output Bitstream
+    # -----------------------------------------------------------------------------
+    if ($Target -eq "all") {
+        if (Test-Path $BitstreamPath) {
+            $FileSize = (Get-Item $BitstreamPath).Length
+            $FileSizeKb = [math]::Round($FileSize / 1024, 1)
+            Write-Host "`n============================================================" -ForegroundColor Green
+            Write-Host "  BUILD SUCCESSFUL ($Duration s)" -ForegroundColor Green
+            Write-Host "  Bitstream: $BitstreamPath ($FileSizeKb KB)" -ForegroundColor Green
+            Write-Host "============================================================" -ForegroundColor Green
+        } else {
+            Write-Host "`n[WARNING] Build finished but bitstream was not found at $BitstreamPath" -ForegroundColor Yellow
+        }
     } else {
-        Write-Host "`n[WARNING] Build finished but bitstream was not found at $BitstreamPath" -ForegroundColor Yellow
+        Write-Host "`n[OK] Target '$Target' completed successfully ($Duration s)." -ForegroundColor Green
     }
 } else {
-    Write-Host "`n[OK] Target '$Target' completed successfully ($Duration s)." -ForegroundColor Green
+    Write-Host "`n[INFO] Skipping build step (-NoBuild specified). Using existing bitstream." -ForegroundColor Cyan
 }
 
 # -----------------------------------------------------------------------------
@@ -218,18 +259,23 @@ if ($Flash) {
         exit 1
     }
 
+    $CableArgs = @()
+    if ($Cable) {
+        $CableArgs = @("--cable", $Cable)
+    }
+
     Write-Host "`n============================================================" -ForegroundColor Cyan
-    Write-Host "  Flashing Tang Nano 20K (Mode: $Flash)..." -ForegroundColor Cyan
+    Write-Host "  Flashing Tang Nano 20K (Mode: $FlashMode)..." -ForegroundColor Cyan
     Write-Host "============================================================" -ForegroundColor Cyan
 
-    if ($Flash -eq "sram") {
+    if ($FlashMode -eq "sram") {
         # Mode 2: SRAM Program (volatile, instant test)
         Write-Host "Programming directly into SRAM (volatile)..." -ForegroundColor Yellow
-        & $ProgCli --device "GW2AR-18C" --run 2 --fsFile "$BitstreamPath"
-    } elseif ($Flash -eq "flash") {
-        # Mode 1: embFlash Erase and Program (non-volatile, persistent)
-        Write-Host "Programming onboard embFlash (persistent)..." -ForegroundColor Yellow
-        & $ProgCli --device "GW2AR-18C" --run 1 --fsFile "$BitstreamPath"
+        & $ProgCli @CableArgs --device "GW2AR-18C" --run 2 --fsFile "$BitstreamPath"
+    } elseif ($FlashMode -eq "flash") {
+        # Mode 8: exFlash Erase and Program (non-volatile, persistent onboard Winbond SPI Flash)
+        Write-Host "Programming onboard external SPI Flash (exFlash, persistent)..." -ForegroundColor Yellow
+        & $ProgCli @CableArgs --device "GW2AR-18C" --run 8 --fsFile "$BitstreamPath"
     }
 
     if ($LASTEXITCODE -eq 0) {
