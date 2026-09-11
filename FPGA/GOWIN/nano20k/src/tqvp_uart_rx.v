@@ -68,7 +68,8 @@ wire mid_bit      = cycle_counter == baud_divider >> 1;
 
 //
 // Handle picking the next state.
-function [3:0] next_fsm_state();
+reg [3:0] next_fsm_state;
+always @(*) begin
     case(fsm_state)
         FSM_IDLE : next_fsm_state = uart_rxd  ? FSM_IDLE  : FSM_START;
         
@@ -79,7 +80,7 @@ function [3:0] next_fsm_state();
 
         default  : next_fsm_state = next_bit    ? fsm_state + 1 : fsm_state;
     endcase
-endfunction
+end
 
 // --------------------------------------------------------------------------- 
 // Internal register setting and re-setting.
@@ -123,7 +124,7 @@ always @(posedge clk) begin : p_fsm_state
     if(!resetn) begin
         fsm_state <= FSM_IDLE;
     end else begin
-        fsm_state <= next_fsm_state();
+        fsm_state <= next_fsm_state;
     end
 end
 

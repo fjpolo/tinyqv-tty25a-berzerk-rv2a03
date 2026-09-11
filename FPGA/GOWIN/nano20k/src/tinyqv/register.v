@@ -31,7 +31,7 @@ module tinyqv_registers #(parameter NUM_REGS=16, parameter REG_ADDR_BITS=4) (
 
     genvar i;
     generate
-        for (i = 0; i < 2**REG_ADDR_BITS; i = i + 1) begin
+        for (i = 0; i < 2**REG_ADDR_BITS; i = i + 1) begin : gen_regs
             if (i == 0 || i >= NUM_REGS) begin : gen_reg_zero
                 assign reg_access[i] = 0;
             end else if (i == 3) begin : gen_reg_gp // gp is hardcoded to 0x01000400

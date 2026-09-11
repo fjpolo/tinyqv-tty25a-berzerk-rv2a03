@@ -3,27 +3,27 @@
 `define COCOTB_TESTING
 
 module LenCounterUnit (
-    input  logic       clk,
-    input  logic       reset,
-    input  logic       cold_reset,
-    input  logic       len_clk,
-    input  logic       aclk1,
-    input  logic       aclk1_d,
-    input  logic [7:0] load_value,
-    input  logic       halt_in,
-    input  logic       addr,
-    input  logic       is_triangle,
-    input  logic       write,
-    input  logic       enabled,
-    output logic       lc_on
+    input              clk,
+    input              reset,
+    input              cold_reset,
+    input              len_clk,
+    input              aclk1,
+    input              aclk1_d,
+    input        [7:0] load_value,
+    input              halt_in,
+    input              addr,
+    input              is_triangle,
+    input              write,
+    input              enabled,
+    output reg         lc_on
 );
 
-    logic lc_on_1;
-    logic clear_next;
-    logic [7:0] len_counter_int;
-    logic halt;
-    logic [7:0] len_counter_next;
-    always_ff @(posedge clk) begin : lenunit
+    reg lc_on_1;
+    reg clear_next;
+    reg [7:0] len_counter_int;
+    reg halt;
+    reg [7:0] len_counter_next;
+    always @(posedge clk) begin : lenunit
         if (aclk1_d)
             if (~enabled)
                 lc_on <= 0;
@@ -63,25 +63,24 @@ module LenCounterUnit (
 endmodule
 
 module EnvelopeUnit (
-    input  logic       clk,
-    input  logic       reset,
-    input  logic       env_clk,
-    input  logic [5:0] din,
-    input  logic       addr,
-    input  logic       write,
-    output logic [3:0] envelope
+    input        clk,
+    input        reset,
+    input        env_clk,
+    input  [5:0] din,
+    input        addr,
+    input        write,
+    output [3:0] envelope
 );
 
-    logic [3:0] env_count, env_vol;
-    logic env_disabled;
+    reg [3:0] env_count, env_vol;
+    reg env_disabled;
+    reg [3:0] env_div;
+    reg env_reload;
+    reg env_loop;
 
     assign envelope = env_disabled ? env_vol : env_count;
 
-    always_ff @(posedge clk) begin : envunit
-        logic [3:0] env_div;
-        logic env_reload;
-        logic env_loop;
-
+    always @(posedge clk) begin : envunit
         if (env_clk) begin
             if (~env_reload) begin
                 env_div <= env_div - 1'd1;
@@ -114,39 +113,39 @@ module EnvelopeUnit (
 endmodule
 
 module SquareChan (
-    input  logic       MMC5,
-    input  logic       clk,
-    input  logic       ce,
-    input  logic       aclk1,
-    input  logic       aclk1_d,
-    input  logic       reset,
-    input  logic       cold_reset,
-    input  logic       allow_us,
-    input  logic [1:0] Addr,
-    input  logic [7:0] DIN,
-    input  logic       write,
-    input  logic [7:0] lc_load,
-    input  logic       LenCtr_Clock,
-    input  logic       Env_Clock,
-    input  logic       Enabled,
-    output logic [3:0] Sample,
-    output logic       IsNonZero
+    input        MMC5,
+    input        clk,
+    input        ce,
+    input        aclk1,
+    input        aclk1_d,
+    input        reset,
+    input        cold_reset,
+    input        allow_us,
+    input  [1:0] Addr,
+    input  [7:0] DIN,
+    input        write,
+    input  [7:0] lc_load,
+    input        LenCtr_Clock,
+    input        Env_Clock,
+    input        Enabled,
+    output [3:0] Sample,
+    output       IsNonZero
 );
 
     // Register 1
-    logic [1:0] Duty;
+    reg [1:0] Duty;
 
     // Registers and signals for period and sequencing
-    logic [10:0] Period;
-    logic [11:0] TimerCtr;
-    logic [2:0] SeqPos;
+    reg [10:0] Period;
+    reg [11:0] TimerCtr;
+    reg [2:0] SeqPos;
 
-    logic ValidFreq;
-    logic subunit_write;
-    logic [3:0] Envelope;
-    logic lc;
-    logic DutyEnabledUsed;
-    logic DutyEnabled;
+    wire ValidFreq;
+    wire subunit_write;
+    wire [3:0] Envelope;
+    wire lc;
+    wire DutyEnabledUsed;
+    reg DutyEnabled;
 
     assign DutyEnabledUsed = MMC5 ^ DutyEnabled;
     assign subunit_write = (Addr == 0 || Addr == 3) & write;
@@ -182,7 +181,7 @@ module SquareChan (
         .envelope       (Envelope)
     );
 
-    always_comb begin
+    always @(*) begin
         case (Duty)
             0: DutyEnabled = (SeqPos == 7);
             1: DutyEnabled = (SeqPos >= 6);
@@ -192,7 +191,7 @@ module SquareChan (
     end
 
     // Consolidated main logic block with sweep removed
-    always_ff @(posedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             Duty <= 0;
             Period <= 0;
@@ -204,7 +203,6 @@ module SquareChan (
                     0: Duty <= DIN[7:6];
                     1: begin
                         // This address is now ignored, since the sweep unit is removed.
-                        // You could add a comment here to show this.
                     end
                     2: Period[7:0] <= DIN;
                     3: begin
@@ -228,35 +226,33 @@ module SquareChan (
 endmodule
 
 module TriangleChan (
-    input  logic       clk,
-    input  logic       phi1,
-    input  logic       aclk1,
-    input  logic       aclk1_d,
-    input  logic       reset,
-    input  logic       cold_reset,
-    input  logic       allow_us,
-    input  logic [1:0] Addr,
-    input  logic [7:0] DIN,
-    input  logic       write,
-    input  logic [7:0] lc_load,
-    input  logic       LenCtr_Clock,
-    input  logic       LinCtr_Clock,
-    input  logic       Enabled,
-    output logic [3:0] Sample,
-    output logic       IsNonZero
+    input        clk,
+    input        phi1,
+    input        aclk1,
+    input        aclk1_d,
+    input        reset,
+    input        cold_reset,
+    input        allow_us,
+    input  [1:0] Addr,
+    input  [7:0] DIN,
+    input        write,
+    input  [7:0] lc_load,
+    input        LenCtr_Clock,
+    input        LinCtr_Clock,
+    input        Enabled,
+    output [3:0] Sample,
+    output       IsNonZero
 );
 
-    logic [10:0] Period, applied_period, TimerCtr;
-    initial Period = 'h3E;
-    logic [4:0] SeqPos;
-    logic [6:0] LinCtrPeriod, LinCtrPeriod_1, LinCtr;
-    logic LinCtrl, line_reload;
-    logic LinCtrZero;
-    logic lc;
+    reg [10:0] Period, applied_period, TimerCtr;
+    reg [4:0] SeqPos;
+    reg [6:0] LinCtrPeriod, LinCtrPeriod_1, LinCtr;
+    reg LinCtrl, line_reload;
+    wire LinCtrZero;
+    wire lc;
 
-    logic subunit_write;
-    logic [3:0] sample_latch;
-    // initial sample_latch = 'b1010;
+    wire subunit_write;
+    reg [3:0] sample_latch;
 
     assign LinCtrZero = ~|LinCtr;
     assign IsNonZero = lc;
@@ -264,7 +260,6 @@ module TriangleChan (
 
     assign Sample = (~Enabled | ~lc | LinCtrZero) ? 4'd0 :
                     ((applied_period > 1 || allow_us) ? (SeqPos[3:0] ^ {4{~SeqPos[4]}}) : sample_latch);
-    // assign Sample = Period;
 
     LenCounterUnit LenTri (
         .clk            (clk),
@@ -282,7 +277,7 @@ module TriangleChan (
         .lc_on          (lc)
     );
 
-    always_ff @(posedge clk) begin
+    always @(posedge clk) begin
         if (phi1) begin
             if (TimerCtr == 0) begin
                 TimerCtr <= Period;
@@ -326,10 +321,12 @@ module TriangleChan (
 
         if (reset) begin
             sample_latch <= 4'd0;
-            Period <= 0;
+            Period <= 11'h3E;
+            applied_period <= 0;
             TimerCtr <= 0;
             SeqPos <= 0;
             LinCtrPeriod <= 0;
+            LinCtrPeriod_1 <= 0;
             LinCtr <= 0;
             LinCtrl <= 0;
             line_reload <= 0;
@@ -342,28 +339,28 @@ module TriangleChan (
 endmodule
 
 module NoiseChan (
-    input  logic       clk,
-    input  logic       ce,
-    input  logic       aclk1,
-    input  logic       aclk1_d,
-    input  logic       reset,
-    input  logic       cold_reset,
-    input  logic [1:0] Addr,
-    input  logic [7:0] DIN,
-    input  logic       write,
-    input  logic [7:0] lc_load,
-    input  logic       LenCtr_Clock,
-    input  logic       Env_Clock,
-    input  logic       Enabled,
-    output logic [3:0] Sample,
-    output logic       IsNonZero
+    input        clk,
+    input        ce,
+    input        aclk1,
+    input        aclk1_d,
+    input        reset,
+    input        cold_reset,
+    input  [1:0] Addr,
+    input  [7:0] DIN,
+    input        write,
+    input  [7:0] lc_load,
+    input        LenCtr_Clock,
+    input        Env_Clock,
+    input        Enabled,
+    output [3:0] Sample,
+    output       IsNonZero
 );
-    logic ShortMode;
-    logic [14:0] Shift;
-    logic [3:0] Period;
-    logic [3:0] Envelope;
-    logic subunit_write;
-    logic lc;
+    reg ShortMode;
+    reg [14:0] Shift;
+    reg [3:0] Period;
+    wire [3:0] Envelope;
+    wire subunit_write;
+    wire lc;
 
     assign IsNonZero = lc;
     assign subunit_write = (Addr == 0 || Addr == 3) & write;
@@ -418,9 +415,9 @@ module NoiseChan (
         noise_ntsc_lut[15] = 11'h014;
     end
 
-    logic [10:0] noise_timer;
-    logic noise_clock;
-    always_ff @(posedge clk) begin
+    reg [10:0] noise_timer;
+    reg noise_clock;
+    always @(posedge clk) begin
         if (aclk1_d) begin
             noise_timer <= {noise_timer[9:0], (noise_timer[10] ^ noise_timer[8]) | ~|noise_timer};
 
@@ -452,21 +449,22 @@ module NoiseChan (
             noise_timer <= 0;
     end
 endmodule
+
 module FrameCtr (
-    input  logic clk,
-    input  logic aclk1,
-    input  logic aclk2,
-    input  logic reset,
-    input  logic cold_reset,
-    input  logic read,
-    input  logic write_ce,
-    input  logic [7:0] din,
-    input  logic [1:0] addr,
-    input  logic MMC5,
-    output logic irq,
-    output logic irq_flag,
-    output logic frame_half,
-    output logic frame_quarter
+    input        clk,
+    input        aclk1,
+    input        aclk2,
+    input        reset,
+    input        cold_reset,
+    input        read,
+    input        write_ce,
+    input  [7:0] din,
+    input  [1:0] addr,
+    input        MMC5,
+    output       irq,
+    output       irq_flag,
+    output       frame_half,
+    output       frame_quarter
 );
     // NTSC -- Confirmed
     // Binary Frame Value         Decimal  Cycle
@@ -476,34 +474,34 @@ module FrameCtr (
     // 15'b000_1010_0001_1111,    02591    14899 -- Reset w/o Seq/Interrupt
     // 15'b111_0001_1000_0101     29061    18625 -- Reset w/ seq
 
-    logic frame_reset;
-    logic frame_interrupt_buffer;
-    logic frame_int_disabled;
-    logic FrameInterrupt;
-    logic set_irq;
-    logic FrameSeqMode_2;
-    logic frame_reset_2;
-    logic w4017_1, w4017_2;
-    logic [14:0] frame;
-    logic [14:0] frame_next;
+    wire frame_reset;
+    reg frame_interrupt_buffer;
+    wire frame_int_disabled;
+    reg FrameInterrupt;
+    wire set_irq;
+    reg FrameSeqMode_2;
+    reg frame_reset_2;
+    reg w4017_1, w4017_2;
+    reg [14:0] frame;
+    reg [14:0] frame_next;
 
     // Registered outputs for stable enables
-    logic frame_half_reg, frame_quarter_reg;
+    reg frame_half_reg, frame_quarter_reg;
     assign frame_half = frame_half_reg;
     assign frame_quarter = frame_quarter_reg;
 
     // Register 4017
-    logic DisableFrameInterrupt;
-    logic FrameSeqMode;
+    reg DisableFrameInterrupt;
+    reg FrameSeqMode;
 
     assign frame_int_disabled = DisableFrameInterrupt;
     assign irq = FrameInterrupt && ~DisableFrameInterrupt;
     assign irq_flag = frame_interrupt_buffer;
 
-    logic seq_mode;
+    wire seq_mode;
     assign seq_mode = aclk1 ? FrameSeqMode : FrameSeqMode_2;
 
-    logic frm_a, frm_b, frm_c, frm_d, frm_e;
+    wire frm_a, frm_b, frm_c, frm_d, frm_e;
     assign frm_a = 15'b001_0000_0110_0001 == frame;
     assign frm_b = 15'b011_0110_0000_0011 == frame;
     assign frm_c = 15'b010_1100_1101_0011 == frame;
@@ -513,11 +511,11 @@ module FrameCtr (
     assign set_irq = frm_d & ~FrameSeqMode;
     assign frame_reset = frm_d | frm_e | w4017_2;
 
-    always_comb begin
+    always @(*) begin
         frame_next = frame_reset_2 ? 15'h7FFF : {frame[13:0], ((frame[14] ^ frame[13]) | ~|frame)};
     end
 
-    always_ff @(posedge clk or posedge reset) begin : apu_block
+    always @(posedge clk or posedge reset) begin : apu_block
         if (reset) begin
             // All registers must have a fixed reset value here.
             FrameInterrupt <= 0;
@@ -530,6 +528,7 @@ module FrameCtr (
             frame_half_reg <= 0;
             frame_quarter_reg <= 0;
             frame_reset_2 <= 0;
+            FrameSeqMode_2 <= 0;
         end else begin
             if (aclk1) begin
                 frame <= frame_next;
@@ -568,23 +567,24 @@ module FrameCtr (
         end
     end
 endmodule
+
 module APU (
-    input  logic         MMC5,
-    input  logic         clk,
-    input  logic         PHI2,      // Now used as a clock enable.
-    input  logic         ce,
-    input  logic         reset,
-    input  logic         cold_reset,
-    input  logic         allow_us,       // Set to 1 to allow ultrasonic frequencies
-    input  logic  [4:0]  ADDR,           // APU Address Line
-    input  logic  [7:0]  DIN,            // Data to APU
-    input  logic         RW,
-    input  logic         CS,
-    input  logic         odd_or_even,
-    output logic  [7:0]  DOUT,           // Data from APU
-    output wire   [15:0] Sample,
-    output logic         IRQ,            // IRQ asserted high == asserted
-    output logic         o_ce
+    input         MMC5,
+    input         clk,
+    input         PHI2,      // Now used as a clock enable.
+    input         ce,
+    input         reset,
+    input         cold_reset,
+    input         allow_us,       // Set to 1 to allow ultrasonic frequencies
+    input  [4:0]  ADDR,           // APU Address Line
+    input  [7:0]  DIN,            // Data to APU
+    input         RW,
+    input         CS,
+    input         odd_or_even,
+    output [7:0]  DOUT,           // Data from APU
+    output [15:0] Sample,
+    output        IRQ,            // IRQ asserted high == asserted
+    output        o_ce
     );
 
     reg [7:0] len_counter_lut[0:31];
@@ -624,13 +624,13 @@ module APU (
         len_counter_lut[31] = 8'h1D;
     end
 
-    logic [7:0] lc_load;
+    wire [7:0] lc_load;
     assign lc_load = len_counter_lut[DIN[7:3]];
 
     // All clocking is now handled via a single clock enable signal.
     // The PHI2 signal from the top-level is now a clock enable.
-    logic read, write, write_ce;
-    logic apu_ce_sync; // Synchronize the PHI2 enable signal
+    wire read, write, write_ce;
+    reg apu_ce_sync; // Synchronize the PHI2 enable signal
 
     always @(posedge clk) begin
         apu_ce_sync <= PHI2;
@@ -641,39 +641,39 @@ module APU (
     assign write_ce = write & apu_ce_sync;
 
     // Derived clock signals are replaced with a clock enable.
-    logic aclk1, aclk2, aclk1_delayed, phi1;
+    wire aclk1, aclk2, aclk1_delayed, phi1;
     assign aclk1 = odd_or_even;
     assign aclk2 = ~odd_or_even & apu_ce_sync;
     assign aclk1_delayed = ~odd_or_even & ce;
     assign phi1 = ce;
 
-    logic [3:0] Enabled;
-    logic [3:0] Sq1Sample,Sq2Sample,TriSample,NoiSample;
-    logic DmcIrq = 1'b0;
+    wire [3:0] Enabled;
+    wire [3:0] Sq1Sample,Sq2Sample,TriSample,NoiSample;
+    wire DmcIrq = 1'b0;
 
-    logic irq_flag;
-    logic frame_irq;
+    wire irq_flag;
+    wire frame_irq;
 
     // Generate internal memory write signals
-    logic ApuMW0, ApuMW1, ApuMW2, ApuMW3, ApuMW5;
+    wire ApuMW0, ApuMW1, ApuMW2, ApuMW3, ApuMW5;
     assign ApuMW0 = ADDR[4:2]==0; // SQ1
     assign ApuMW1 = ADDR[4:2]==1; // SQ2
     assign ApuMW2 = ADDR[4:2]==2; // TRI
     assign ApuMW3 = ADDR[4:2]==3; // NOI
     assign ApuMW5 = ADDR[4:2]==5; // Control registers
 
-    logic Sq1NonZero, Sq2NonZero, TriNonZero, NoiNonZero;
-    logic ClkE, ClkL;
+    wire Sq1NonZero, Sq2NonZero, TriNonZero, NoiNonZero;
+    wire ClkE, ClkL;
     
     // The internal clock enables are now derived from the frame counter.
-    logic frame_quarter, frame_half;
+    wire frame_quarter, frame_half;
     assign ClkE = frame_quarter & aclk1_delayed;
     assign ClkL = frame_half & aclk1_delayed;
 
     // Use a single synchronous assignment for enabled_buffer.
-    logic [3:0] enabled_buffer;
+    reg [3:0] enabled_buffer;
 
-    always_ff @(posedge clk or posedge reset) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             enabled_buffer <= 0;    
         end else if (apu_ce_sync && ApuMW5 && write && ADDR[1:0] == 1) begin
@@ -681,7 +681,6 @@ module APU (
         end
     end
     assign Enabled = enabled_buffer;
-
 
     // Generate bus output
     assign DOUT = {DmcIrq, irq_flag, 1'b0, 1'b0, NoiNonZero, TriNonZero, Sq2NonZero, Sq1NonZero};
@@ -794,13 +793,12 @@ module APU (
     assign o_ce = apu_ce_sync;
 endmodule
 
-
 module APUMixer (
-    input  logic  [3:0] square1,
-    input  logic  [3:0] square2,
-    input  logic  [3:0] triangle,
-    input  logic  [3:0] noise,
-    output logic [15:0] sample
+    input   [3:0] square1,
+    input   [3:0] square2,
+    input   [3:0] triangle,
+    input   [3:0] noise,
+    output [15:0] sample
 );
 
 // Note: The original non-linear pulse_lut has been removed.
@@ -833,6 +831,5 @@ wire [17:0] mixed_sum = {14'b0, square1} + {14'b0, square2} + {12'b0, triangle, 
 
 // Divide the sum by a constant to scale the output down and prevent overflow.
 assign sample = mixed_sum[17:2];
-
 
 endmodule
