@@ -7,6 +7,7 @@ __pycache__/
 # Simulation artifacts
 *.vcd
 *.fst
+*.wav
 
 # IDE / OS files
 .DS_Store
