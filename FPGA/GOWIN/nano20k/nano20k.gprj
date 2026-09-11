@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
+    <FileList>
+        <File path="src/tangnano20k_top.v" type="file.verilog" enable="1"/>
+        <File path="src/i2s_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv_top.v" type="file.verilog" enable="1"/>
+        <File path="src/peripherals.v" type="file.verilog" enable="1"/>
+        <File path="src/peripheral.v" type="file.verilog" enable="1"/>
+        <File path="src/apu.v" type="file.verilog" enable="1"/>
+        <File path="src/sim_qspi.v" type="file.verilog" enable="1"/>
+        <File path="src/bram.v" type="file.verilog" enable="1"/>
+        <File path="src/peri_byte_empty.v" type="file.verilog" enable="1"/>
+        <File path="src/peri_full_empty.v" type="file.verilog" enable="1"/>
+        <File path="src/peri_byte_example.v" type="file.verilog" enable="1"/>
+        <File path="src/peri_full_example.v" type="file.verilog" enable="1"/>
+        <File path="src/peri_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/tqvp_uart_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/tqvp_uart_rx.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/tinyqv.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/cpu.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/core.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/decode.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/alu.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/register.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/latch_reg.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/mem_ctrl.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/qspi_ctrl.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/qspi_flash.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/counter.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/time.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/uart_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/tinyqv/uart_rx.v" type="file.verilog" enable="1"/>
+        <File path="nano20k.cst" type="file.cst" enable="1"/>
+    </FileList>
+    <OptionList>
+        <Option type="top_module" value="tangnano20k_top"/>
+        <Option type="verilog_language" value="sysv-2017"/>
+    </OptionList>
+</Project>
