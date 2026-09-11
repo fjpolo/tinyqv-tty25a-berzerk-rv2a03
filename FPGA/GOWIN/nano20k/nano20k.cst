@@ -5,12 +5,12 @@
 IO_LOC "sys_clk" 4;
 IO_PORT "sys_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 
-// User Buttons (Active-Low)
-IO_LOC "rst_n" 88;
-IO_PORT "rst_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+// User Buttons (Tang Nano 20K onboard S1 and S2 buttons: Active-High, onboard pull-down)
+IO_LOC "btn_rst" 88;
+IO_PORT "btn_rst" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
 
 IO_LOC "key2" 87;
-IO_PORT "key2" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_PORT "key2" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
 
 // USB-UART Interface (Connected to onboard BL616 USB-JTAG/UART bridge)
 IO_LOC "uart_tx" 69;

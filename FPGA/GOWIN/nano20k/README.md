@@ -21,7 +21,7 @@ This folder contains the complete, self-contained FPGA project for running the *
 | Signal Name | FPGA Pin | Direction | Description |
 |:---|:---|:---|:---|
 | `sys_clk` | **Pin 4** | Input | 27 MHz onboard crystal oscillator |
-| `rst_n` | **Pin 88** | Input | S1 User Button (Active-Low Reset, internal pull-up) |
+| `btn_rst` | **Pin 88** | Input | S1 User Button (Active-High Reset, onboard 10k pull-down) |
 | `key2` | **Pin 87** | Input | S2 User Button (Active-Low, internal pull-up) |
 | `uart_tx` | **Pin 69** | Output | FPGA UART TX $\rightarrow$ BL616 USB-Serial RX |
 | `uart_rx` | **Pin 70** | Input | FPGA UART RX $\leftarrow$ BL616 USB-Serial TX |

@@ -4,7 +4,7 @@
  *
  * Interfaces:
  * - Clock: 27 MHz crystal oscillator (Pin 4)
- * - Reset: S1 User Button (Pin 88, active-low)
+ * - Reset: S1 User Button (Pin 88, active-high, onboard 10k pull-down)
  * - User Key 2: S2 User Button (Pin 87, active-low)
  * - UART: BL616 USB-Serial bridge (Pin 69 TX, Pin 70 RX) @ 115200 baud
  * - Audio: Onboard MAX98357A I2S Class-D DAC (Pins 51, 54, 55, 56)
@@ -15,8 +15,8 @@
 
 module tangnano20k_top (
     input  wire       sys_clk,   // 27 MHz onboard crystal (Pin 4)
-    input  wire       rst_n,     // S1 user button (Pin 88, active-low)
-    input  wire       key2,      // S2 user button (Pin 87, active-low)
+    input  wire       btn_rst,   // S1 user button (Pin 88, active-high: 1 = pressed, 0 = released)
+    input  wire       key2,      // S2 user button (Pin 87, active-high: 1 = pressed, 0 = released)
 
     // USB-UART interface to onboard BL616 microcontroller
     output wire       uart_tx,   // FPGA TX -> BL616 RX (Pin 69)
@@ -33,29 +33,45 @@ module tangnano20k_top (
 );
 
     // -------------------------------------------------------------------------
-    // Power Amplifier Enable
+    // S1 Reset Synchronizer & Power-On Reset (POR)
     // -------------------------------------------------------------------------
-    // Turn on MAX98357A amplifier once reset is released
-    reg pa_en_reg;
-    always @(posedge sys_clk or negedge rst_n) begin
-        if (!rst_n)
-            pa_en_reg <= 1'b0;
-        else
-            pa_en_reg <= 1'b1;
+    // Tang Nano 20K S1 button (Pin 88) is active-HIGH (1 = pressed, 0 = released).
+    reg [2:0] btn_rst_sync = 3'b000;
+    always @(posedge sys_clk) begin
+        btn_rst_sync <= {btn_rst_sync[1:0], btn_rst};
     end
-    assign pa_en = pa_en_reg;
+    wire rst_pressed = btn_rst_sync[2];
+
+    // Power-on reset counter: holds reset for ~38 ms (2^20 cycles @ 27 MHz)
+    // after FPGA bitstream load, and debounces S1 button release.
+    reg [19:0] por_cnt = 20'hFFFFF;
+    reg        rst_sync_n = 1'b0;
+
+    always @(posedge sys_clk) begin
+        if (rst_pressed) begin
+            por_cnt    <= 20'hFFFFF;
+            rst_sync_n <= 1'b0;
+        end else if (por_cnt != 20'd0) begin
+            por_cnt    <= por_cnt - 20'd1;
+            rst_sync_n <= 1'b0;
+        end else begin
+            rst_sync_n <= 1'b1;
+        end
+    end
 
     // -------------------------------------------------------------------------
-    // Reset Synchronizer
+    // Power Amplifier Enable
     // -------------------------------------------------------------------------
-    reg [2:0] rst_sync;
-    always @(posedge sys_clk or negedge rst_n) begin
-        if (!rst_n)
-            rst_sync <= 3'b000;
-        else
-            rst_sync <= {rst_sync[1:0], 1'b1};
+    // Enable MAX98357A amplifier once reset is released
+    assign pa_en = rst_sync_n;
+
+    // -------------------------------------------------------------------------
+    // User Key 2 (S2) Synchronizer
+    // -------------------------------------------------------------------------
+    reg [1:0] key2_sync = 2'b00;
+    always @(posedge sys_clk) begin
+        key2_sync <= {key2_sync[0], key2};
     end
-    wire rst_sync_n = rst_sync[2];
 
     // -------------------------------------------------------------------------
     // TinyQV SoC Core Instantiation
@@ -68,7 +84,7 @@ module tangnano20k_top (
     ) u_tinyqv (
         .clk         (sys_clk),
         .rst_n       (rst_sync_n),
-        .ui_in       ({uart_rx, 6'b000000, ~key2}),
+        .ui_in       ({uart_rx, 6'b000000, key2_sync[1]}),
         .uo_out      (uo_out),
         .audio_sample(raw_audio_sample)
     );
