@@ -82,8 +82,8 @@ else
     echo "WARNING: No .venv found. Running with system Python environment."
 fi
 
-# Clean previous simulation results (keep sim_build so iverilog incremental build works)
-rm -f results.xml
+# Clean previous simulation results and build cache
+rm -rf sim_build results.xml
 export PYTHONUNBUFFERED=1
 make -f test_prog.mk PROG="${PROG}" VCD="${VCD}" WAVES="${WAVES}"
 
