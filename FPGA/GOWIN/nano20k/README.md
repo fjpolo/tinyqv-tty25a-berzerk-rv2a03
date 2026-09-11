@@ -124,9 +124,14 @@ The script automatically locates your Gowin installation (e.g., `C:\Gowin\Gowin_
    - **Package**: `QN88`
    - **Part Number**: `GW2AR-LV18QN88C8/I7`
 
-#### Step 2: Synthesize and Place & Route
-1. In the **Process** pane on the left, double-click **Place & Route** (or right-click **Place & Route** $\rightarrow$ **Rerun All**).
-2. Gowin EDA will synthesize the design, place and route it, and generate the bitstream file:
+#### Step 2: Configure Dual-Purpose Pins & Synthesize
+1. In Gowin EDA GUI menu, open **Project** $\rightarrow$ **Configuration** (or click the Configuration gear icon).
+2. On the left tree, select **Place & Route** $\rightarrow$ **Dual-Purpose Pin**.
+3. Check the box for **"Use SSPI as regular IO"** (required for onboard I2S audio DAC pins 54, 55, 56).
+4. Under **Synthesize** $\rightarrow$ **General**, verify **Top Module** is set to `tangnano20k_top`.
+5. Click **OK** to save.
+6. In the **Process** pane on the left, right-click **Place & Route** $\rightarrow$ **Rerun All** (or double-click **Place & Route**).
+7. Gowin EDA will synthesize the design, place and route it, and generate the bitstream file:
    `impl/pnr/nano20k.fs`.
 
 ---
