@@ -73,11 +73,8 @@ module tangnano20k_top (
         .audio_sample(raw_audio_sample)
     );
 
-    // In TinyQV:
-    // - uo_out[0]: Standard peripheral UART TX (used by uart_putc / uart_printf in C firmware)
-    // - uo_out[6]: Debug UART TX (used by debug_uart_putc)
-    // Both idle HIGH (1'b1), so combining with AND routes whichever UART is transmitting.
-    assign uart_tx = uo_out[0] & uo_out[6];
+    // TinyQV primary peripheral UART TX is mapped to uo_out[0]
+    assign uart_tx = uo_out[0];
 
     // -------------------------------------------------------------------------
     // Audio PCM Scaling & Conditioning
