@@ -78,7 +78,7 @@ always @(*) begin
 
         FSM_READY: next_fsm_state = uart_rx_read? FSM_IDLE  : FSM_READY;
 
-        default  : next_fsm_state = next_bit    ? fsm_state + 1 : fsm_state;
+        default  : next_fsm_state = next_bit    ? fsm_state + 4'd1 : fsm_state;
     endcase
 end
 

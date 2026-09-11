@@ -228,7 +228,7 @@ module tinyQV_top #(
             time_count <= 0;
         end else begin
             if (time_count == (CLOCK_MHZ - 1)) time_count <= 0;
-            else time_count <= time_count + 1;
+            else time_count <= time_count + 8'd1;
         end
     end
     assign time_pulse = time_count == (CLOCK_MHZ - 1);

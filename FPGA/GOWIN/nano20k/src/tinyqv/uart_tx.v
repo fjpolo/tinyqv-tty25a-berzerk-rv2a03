@@ -82,7 +82,7 @@ function [3:0] next_fsm_state(input tx_en);
     end else begin
         if (next_bit) begin
             if (fsm_state == FSM_END) next_fsm_state = FSM_IDLE;
-            else next_fsm_state = fsm_state + 1;
+            else next_fsm_state = fsm_state + 4'd1;
         end else begin
             next_fsm_state = fsm_state;
         end
