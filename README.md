@@ -17,6 +17,7 @@ graph TD
     subgraph Hardware & SoC
         Peri["tinyqv-rv2a03<br/>(Standalone Peripheral IP)"]
         SoC["ttsky25a-tinyQV-fjpolo-rv2a03<br/>(Full SoC & ASIC Hardening)"]
+        FPGA["FPGA/GOWIN/nano20k<br/>(Sipeed Tang Nano 20K Emulation)"]
     end
 
     subgraph Software & Firmware
@@ -31,26 +32,30 @@ graph TD
 
     Super --> Peri
     Super --> SoC
+    Super --> FPGA
     Super --> SDK
     Super --> Projects
     Super --> uPy
     Super --> TC
 
     Peri -- "Integrated as Peripheral #15" --> SoC
+    SoC -- "Synthesized for GW2AR-18C" --> FPGA
     TC -- "Cross-compiles for RV32EC" --> SDK
     SDK -- "Provides runtime & headers" --> Projects
     SDK -- "Provides runtime & headers" --> uPy
     SDK -- "Produces binaries (.bin / .hex)" --> SoC
+    Projects -- "Embeds rv2a03_test.hex" --> FPGA
 ```
 
 ---
 
-## Submodule Distribution
+## Submodule & Component Distribution
 
 | Component | Path | Upstream / Fork URL | Configured Branch | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
 | **Full SoC Integration** | [`ttsky25a-tinyQV-fjpolo-rv2a03`](ttsky25a-tinyQV-fjpolo-rv2a03/) | [`fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03`](https://github.com/fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03) | `fjpolo/RV2A03` | Top-level TinyQV SoC ("Berzerk" instance) integrating the RISC-V processor, interconnect, memory bus, and all peripherals including RV2A03 (`tqvp_fjpolo_rv2a03`). Used for full-chip tapeout hardening (OpenLane) and system-level verification. |
 | **RV2A03 Peripheral IP** | [`tinyqv-rv2a03`](tinyqv-rv2a03/) | [`fjpolo/tinyqv-rv2a03`](https://github.com/fjpolo/tinyqv-rv2a03) | `main` | Standalone hardware repository for the RV2A03 audio peripheral (based on `tinyqv-full-peripheral-template`). Contains synthesizable Verilog (`apu.v`), SPI interface, unit-level cocotb testbench, and register definitions. |
+| **FPGA Emulation Target** | [`FPGA/GOWIN/nano20k`](FPGA/GOWIN/nano20k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Nano 20K** (Gowin GW2AR-18C). Features real-time 16-bit 46.875 kHz I2S audio via the onboard MAX98357A amplifier, autonomous BRAM boot, and 115200 baud UART logging. |
 | **TinyQV C SDK** | [`tinyQV-sdk-fjpolo`](tinyQV-sdk-fjpolo/) | [`fjpolo/tinyQV-sdk-fjpolo`](https://github.com/fjpolo/tinyQV-sdk-fjpolo) | `main` | C SDK fork for writing firmware and bare-metal applications targeting TinyQV. Contains startup assembly (`start.s`), linker scripts, runtime libraries, and peripheral drivers (UART, SPI, Timer, GPIO, Gamepad, PRISM, VGA). |
 | **Demo Projects** | [`tinyQV-projects`](tinyQV-projects/) | [`fjpolo/tinyQV-projects`](https://github.com/fjpolo/tinyQV-projects) | `dev/20290907` | Curated collection of standalone demo applications and firmware examples for TinyQV (e.g., RV2A03 hardware test & chiptune demo, 3D ASCII donut, VGA graphics, LCD, cellular automata, UART echo). |
 | **MicroPython Port** | [`micropython`](micropython/) | [`MichaelBell/micropython`](https://github.com/MichaelBell/micropython) | `tinyqv-sky25a` | Minimal MicroPython runtime ported for TinyQV on the Sky25a shuttle. Provides an interactive Python REPL over UART (115200 baud) and hardware access via `machine.Pin` and SPI. |
@@ -298,6 +303,65 @@ import machine
 # Control GPIO pins (outputs 0-7, inputs 8-15)
 pin = machine.Pin(1, machine.Pin.OUT)
 pin.value(1)
+```
+
+---
+
+### 6. Hardware Emulation on FPGA (Sipeed Tang Nano 20K)
+
+The repository includes a complete, hardware-tested FPGA emulation target located in [`FPGA/GOWIN/nano20k/`](FPGA/GOWIN/nano20k/). It implements the entire TinyQV SoC with the RV2A03 APU on a **Gowin GW2AR-18C** FPGA.
+
+#### Hardware Features
+- **27 MHz RISC-V SoC**: Boots autonomously from 32 KB on-chip Block RAM pre-loaded with firmware (`rv2a03_test.hex`).
+- **Real-Time I2S Audio**: Drives the onboard **MAX98357A** Class-D audio amplifier with 16-bit 46.875 kHz stereo PCM audio.
+- **Diagnostic LEDs**: 6 active-low LEDs for dual-speed heartbeat, reset status, UART TX activity, APU audio playback, and power amp enable.
+- **Serial Telemetry**: Streams boot messages, test pass/fail results, and chiptune song playback over UART at **115,200 baud 8N1** via the onboard BL616 MCU USB-Serial bridge (`COM17`).
+
+#### Automated Build & Flash Flow
+Run directly from the root workspace:
+
+```powershell
+# 1. Full synthesis, place & route, and bitstream generation:
+.\build_gowin.bat
+
+# 2. Flash bitstream directly to Tang Nano 20K persistent external SPI Flash (exFlash):
+.\build_gowin.bat -FlashMode flash -Flash
+
+# 3. Flash existing bitstream without waiting for synthesis:
+.\build_gowin.bat -FlashMode flash -Flash -NoBuild
+```
+
+#### Real-Time Serial Monitoring in VS Code
+To stream firmware output directly inside VS Code:
+
+1. **Option A: PowerShell Tool**:
+   ```powershell
+   .\serial_monitor.ps1
+   ```
+2. **Option B: VS Code Task**:
+   Press `Ctrl+Shift+P` $\rightarrow$ **`Tasks: Run Task`** $\rightarrow$ select **`Serial Monitor: Tang Nano 20K (115200)`**.
+3. **Option C: One-Click Batch**:
+   Double-click `.\serial_monitor.bat` or run it from any terminal.
+
+Press the **S1** button on the board (near the HDMI port) to reset the SoC. You will see:
+```text
+=====================================================
+  TinyQV RV2A03 NES APU Sound Peripheral Testsuite  
+  Target: Sky25a Berzerk (Peripheral Index 14)      
+=====================================================
+
+[TEST 1] Testing Square Channel 1 (440 Hz)... PASS
+[TEST 2] Testing Square Channel 2 (880 Hz)... PASS
+[TEST 3] Testing Triangle Channel (440 Hz)... PASS
+[TEST 4] Testing Noise Channel... PASS
+[TEST 5] Testing All Channels Simultaneously... PASS
+
+-----------------------------------------------------
+Test Results: 5/5 tests passed successfully.
+-----------------------------------------------------
+Starting NES Chiptune Demo: 'Berzerk APU Theme'...
+Playing 4-bar melody with arpeggio and bass line...
+Demo complete! APU muted.
 ```
 
 ---

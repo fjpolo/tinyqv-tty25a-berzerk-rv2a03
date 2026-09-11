@@ -93,12 +93,14 @@ From the workspace root or from this directory, run the build script:
 # From workspace root (Windows Command Prompt or PowerShell):
 .\build_gowin.bat
 
-# Or directly from PowerShell:
-.\build_gowin.bat -Clean              # Clean and rebuild from scratch
-.\build_gowin.bat -Target syn         # Logic synthesis only
-.\build_gowin.bat -Scan               # Detect connected USB-JTAG cables and FPGA
-.\build_gowin.bat -Flash sram         # Build and load directly to Tang Nano 20K SRAM
-.\build_gowin.bat -Flash flash        # Build and write to persistent onboard embFlash
+# Or directly from PowerShell inside FPGA/GOWIN/nano20k:
+.\build.ps1                           # Full build: synthesis + PnR + bitstream (.fs)
+.\build.ps1 -Clean                    # Clean build directory and rebuild
+.\build.ps1 -Target syn               # Run logic synthesis only
+.\build.ps1 -Scan                     # Scan for connected USB Debugger A and GW2AR-18C
+.\build.ps1 -Flash sram               # Build and load directly to Tang Nano 20K SRAM (volatile)
+.\build.ps1 -FlashMode flash -Flash   # Build and write to persistent onboard external SPI Flash
+.\build.ps1 -FlashMode flash -Flash -NoBuild # Flash existing bitstream without rebuilding
 ```
 
 From Linux / Git Bash / WSL:
@@ -131,65 +133,84 @@ The script automatically locates your Gowin installation (e.g., `C:\Gowin\Gowin_
 4. Under **Synthesize** $\rightarrow$ **General**, verify **Top Module** is set to `tangnano20k_top`.
 5. Click **OK** to save.
 6. In the **Process** pane on the left, right-click **Place & Route** $\rightarrow$ **Rerun All** (or double-click **Place & Route**).
-7. Gowin EDA will synthesize the design, place and route it, and generate the bitstream file:
-   `impl/pnr/nano20k.fs`.
+7. Gowin EDA will synthesize the design, place and route it, and generate the bitstream file: `impl/pnr/nano20k.fs`.
 
 ---
 
 ## 5. Programming the Tang Nano 20K
 
 1. Connect the Tang Nano 20K to your computer using a USB Type-C cable.
-2. Open **Programmer** inside Gowin EDA (or launch `Programmer.exe`).
-3. Click **Scan Device**. You should see `GW2AR-18C` detected via the onboard BL616 USB-JTAG bridge.
-4. Set the programming operation:
-   - **For Volatile RAM Test (fastest)**:
+2. Open **Programmer** inside Gowin EDA (or launch `Programmer.exe`), or use `programmer_cli.exe`.
+3. Select Cable: **`USB Debugger A`** (the onboard BL616 MCU bridge).
+4. Click **Scan Device**. You will see `GW2AR-18C` detected (Device ID `0x0000081B`).
+5. Set the programming operation:
+   - **For Fast Volatile RAM Testing (SRAM Mode)**:
      - Access Mode: `SRAM Mode`
-     - Operation: `SRAM Program`
+     - Operation: `SRAM Program` (`--run 2`)
      - File: `impl/pnr/nano20k.fs`
-     - Click **Program/Configure**.
    - **For Permanent Non-Volatile Boot (survives power cycle)**:
-     - Access Mode: `Embedded Flash Mode`
-     - Operation: `embFlash Erase, Program`
+     - Access Mode: `External Flash Mode` (`exFlash`)
+     - Operation: `exFlash Erase,Program` (`--run 8`)
+     - Target SPI Flash: `Winbond W25Q64` (Flash ID `0xEF4017`)
      - File: `impl/pnr/nano20k.fs`
-     - Click **Program/Configure**.
+
+*(Note: The GW2AR-18C does not have internal embedded flash; always use External Flash Mode `exFlash` for non-volatile programming on the Tang Nano 20K).*
 
 ---
 
 ## 6. Verifying Operation
 
 ### A. Onboard LEDs
-Once programmed, you should observe:
-- **LED 0 & LED 5**: Blinking in a heartbeat pattern (~1.6 Hz and ~0.8 Hz).
+Once programmed, you will observe:
+- **LED 0 & LED 5**: Blinking in a dual-speed heartbeat pattern (~1.6 Hz and ~0.8 Hz).
+- **LED 1**: Reset indicator (turns ON only while button S1 is held down).
 - **LED 2**: Blinking during UART transmissions.
-- **LED 3**: Illuminating whenever the APU is playing audio.
-- **LED 4**: Continuously ON (verifying `pa_en` is active high).
+- **LED 3**: Illuminating whenever the APU is outputting sound.
+- **LED 4**: Continuously ON (verifying `pa_en` audio amplifier enable is active-high).
 
-### B. Serial Monitor (UART Output)
-1. Open your preferred serial terminal (PuTTY, TeraTerm, VS Code Serial Monitor, or Arduino IDE Serial Monitor).
-2. Select the COM port assigned to the Tang Nano 20K (BL616 USB Serial Port).
-3. Set the baud rate to **`115200`**, **8 Data Bits**, **No Parity**, **1 Stop Bit** (`115200 8N1`).
-4. Press the **S1** button on the board to reset the CPU. You will see:
-   ```text
-   === RV2A03 FIRMWARE SIMULATION ===
-   [TEST 1] Testing Square Channel 1 (440 Hz)... PASS (20/20 samples, peak: 18)
-   [TEST 2] Testing Square Channel 2 (440 Hz)... PASS (20/20 samples, peak: 18)
-   [TEST 3] Testing Triangle Channel (440 Hz)... PASS (20/20 samples, peak: 15)
-   [TEST 4] Testing Noise Channel.............. PASS (20/20 samples, peak: 12)
-   [TEST 5] Testing All Channels Simultaneously. PASS (20/20 samples, combined peak: 24)
+### B. Serial Monitor (UART Output @ 115200 8N1)
+You can view the live boot log and test results directly inside VS Code:
 
-   -----------------------------------------------------
-   Test Results: 5/5 tests passed successfully.
-   -----------------------------------------------------
-
-   Playing NES Chiptune Demo...
+1. **Option 1: PowerShell Script**:
+   ```powershell
+   .\serial_monitor.ps1
    ```
+   *(Auto-detects the Tang Nano 20K on `COM17` and streams live text).*
+
+2. **Option 2: VS Code Task**:
+   Press `Ctrl+Shift+P` $\rightarrow$ **`Tasks: Run Task`** $\rightarrow$ select **`Serial Monitor: Tang Nano 20K (115200)`**.
+
+3. **Option 3: VS Code Serial Monitor Extension**:
+   Open the Serial Monitor tab; port `COM17` and `115200` baud are pre-configured in `.vscode/settings.json`.
+
+Press the **S1** button (near the HDMI port) to reset the SoC. You will see:
+
+```text
+=====================================================
+  TinyQV RV2A03 NES APU Sound Peripheral Testsuite  
+  Target: Sky25a Berzerk (Peripheral Index 14)      
+=====================================================
+
+[TEST 1] Testing Square Channel 1 (440 Hz)... PASS
+[TEST 2] Testing Square Channel 2 (880 Hz)... PASS
+[TEST 3] Testing Triangle Channel (440 Hz)... PASS
+[TEST 4] Testing Noise Channel... PASS
+[TEST 5] Testing All Channels Simultaneously... PASS
+
+-----------------------------------------------------
+Test Results: 5/5 tests passed successfully.
+-----------------------------------------------------
+Starting NES Chiptune Demo: 'Berzerk APU Theme'...
+Playing 4-bar melody with arpeggio and bass line...
+Demo complete! APU muted.
+```
 
 ### C. Audio Output
 - Connect a small 4–8 $\Omega$ speaker or 3.5mm jack to the MAX98357A speaker pads on the Tang Nano 20K board.
 - You will hear:
   1. Square Channel 1 tone (440 Hz).
-  2. Square Channel 2 tone (440 Hz).
-  3. Triangle Channel pure bass tone.
+  2. Square Channel 2 tone (880 Hz).
+  3. Triangle Channel pure bass tone (440 Hz).
   4. Noise Channel burst.
   5. Multi-channel combined chord.
-  6. The NES chiptune musical melody demo!
+  6. The authentic NES chiptune musical melody demo!
