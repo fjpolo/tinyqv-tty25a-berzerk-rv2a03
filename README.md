@@ -55,7 +55,8 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- |
 | **Full SoC Integration** | [`ttsky25a-tinyQV-fjpolo-rv2a03`](ttsky25a-tinyQV-fjpolo-rv2a03/) | [`fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03`](https://github.com/fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03) | `fjpolo/RV2A03` | Top-level TinyQV SoC ("Berzerk" instance) integrating the RISC-V processor, interconnect, memory bus, and all peripherals including RV2A03 (`tqvp_fjpolo_rv2a03`). Used for full-chip tapeout hardening (OpenLane) and system-level verification. |
 | **RV2A03 Peripheral IP** | [`tinyqv-rv2a03`](tinyqv-rv2a03/) | [`fjpolo/tinyqv-rv2a03`](https://github.com/fjpolo/tinyqv-rv2a03) | `main` | Standalone hardware repository for the RV2A03 audio peripheral (based on `tinyqv-full-peripheral-template`). Contains synthesizable Verilog (`apu.v`), SPI interface, unit-level cocotb testbench, and register definitions. |
-| **FPGA Emulation Target** | [`FPGA/GOWIN/nano20k`](FPGA/GOWIN/nano20k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Nano 20K** (Gowin GW2AR-18C). Features real-time 16-bit 46.875 kHz I2S audio via the onboard MAX98357A amplifier, autonomous BRAM boot, and 115200 baud UART logging. |
+| **FPGA Target (Nano 20K)** | [`FPGA/GOWIN/nano20k`](FPGA/GOWIN/nano20k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Nano 20K** (Gowin GW2AR-18C). Features real-time 16-bit 46.875 kHz I2S audio via the onboard MAX98357A amplifier, autonomous BRAM boot, and 115200 baud UART logging. |
+| **FPGA Target (Console 60K)** | [`FPGA/GOWIN/console60k`](FPGA/GOWIN/console60k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Console 60K** (Gowin GW5AT-60B). Features real-time Delta-Sigma audio output driving a **MUSE PMOD-AUDIO v1.2** loudspeaker, an 8-LED status bar (**PMOD-LEDx8**), onboard I2S audio, and 115200 baud UART. |
 | **TinyQV C SDK** | [`tinyQV-sdk-fjpolo`](tinyQV-sdk-fjpolo/) | [`fjpolo/tinyQV-sdk-fjpolo`](https://github.com/fjpolo/tinyQV-sdk-fjpolo) | `main` | C SDK fork for writing firmware and bare-metal applications targeting TinyQV. Contains startup assembly (`start.s`), linker scripts, runtime libraries, and peripheral drivers (UART, SPI, Timer, GPIO, Gamepad, PRISM, VGA). |
 | **Demo Projects** | [`tinyQV-projects`](tinyQV-projects/) | [`fjpolo/tinyQV-projects`](https://github.com/fjpolo/tinyQV-projects) | `dev/20290907` | Curated collection of standalone demo applications and firmware examples for TinyQV (e.g., RV2A03 hardware test & chiptune demo, 3D ASCII donut, VGA graphics, LCD, cellular automata, UART echo). |
 | **MicroPython Port** | [`micropython`](micropython/) | [`MichaelBell/micropython`](https://github.com/MichaelBell/micropython) | `tinyqv-sky25a` | Minimal MicroPython runtime ported for TinyQV on the Sky25a shuttle. Provides an interactive Python REPL over UART (115200 baud) and hardware access via `machine.Pin` and SPI. |
@@ -362,6 +363,31 @@ Test Results: 5/5 tests passed successfully.
 Starting NES Chiptune Demo: 'Berzerk APU Theme'...
 Playing 4-bar melody with arpeggio and bass line...
 Demo complete! APU muted.
+```
+
+---
+
+### 7. Hardware Emulation on FPGA (Sipeed Tang Console 60K + PMODs)
+
+The repository also includes a complete FPGA target for the **Sipeed Tang Console 60K** handheld/retro board located in [`FPGA/GOWIN/console60k/`](FPGA/GOWIN/console60k/). It targets the **Gowin Arora V GW5AT-60B** (`GW5AT-LV60PG484AC1/I0`) FPGA.
+
+#### Hardware Features
+- **PMOD Loudspeaker Output**: Plugs into the lower PMOD socket (**PMOD0**), driving a **MUSE PMOD-AUDIO v1.2** module featuring a **PAM8403** Class-D audio amplifier, volume potentiometer, attached oval loudspeaker (J2), and 3.5mm stereo headphone jack. Driven by a 1st-order 16-bit Delta-Sigma DAC operating at 27 MHz.
+- **PMOD 8-LED Array**: Plugs into the upper PMOD socket (**PMOD1**), driving a **PMOD-LEDx8** module with 8 active-high status indicators for heartbeats, UART TX activity, reset state, audio playing indicator, and PLL lock.
+- **Clock Synthesis**: Arora V PLLA synthesizes exactly 27.000 MHz from the onboard 50 MHz crystal, guaranteeing 100% pitch-matched NES APU audio and bit-perfect 115,200 baud UART with the pre-compiled firmware image.
+- **Autonomous Boot**: Self-boots from on-chip Block RAM pre-loaded with `rv2a03_test.hex`.
+
+#### Automated Build & Flash Flow
+```powershell
+# 1. Full compilation for Tang Console 60K:
+.\build_console60k.bat
+# (or: .\build_gowin.bat -Board console60k)
+
+# 2. Flash bitstream directly to SRAM (volatile, fast):
+.\build_console60k.bat -Flash sram
+
+# 3. Flash bitstream to persistent onboard SPI Flash:
+.\build_console60k.bat -Flash flash
 ```
 
 ---

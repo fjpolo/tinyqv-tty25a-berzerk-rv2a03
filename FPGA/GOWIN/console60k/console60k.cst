@@ -1,0 +1,75 @@
+// Physical Constraints for Sipeed Tang 60K Retro Console
+// Device: GW5AT-LV60PG484AC1/I0 (GW5AT-60B)
+
+// -----------------------------------------------------------------------------
+// Clock & Reset Buttons
+// -----------------------------------------------------------------------------
+IO_LOC  "sys_clk_50m" V22;
+IO_PORT "sys_clk_50m" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=OFF;
+
+IO_LOC  "btn_rst_n"   AA13; // S0 button (active-low reset)
+IO_PORT "btn_rst_n"   IO_TYPE=LVCMOS15 PULL_MODE=UP DRIVE=OFF BANK_VCCIO=1.5;
+
+IO_LOC  "btn_user_n"  AB13; // S1 / MODE button (active-low)
+IO_PORT "btn_user_n"  IO_TYPE=LVCMOS15 PULL_MODE=UP DRIVE=OFF BANK_VCCIO=1.5;
+
+// -----------------------------------------------------------------------------
+// USB-UART to BL616 Microcontroller
+// -----------------------------------------------------------------------------
+IO_LOC  "uart_tx"     U15;  // FPGA TX -> BL616 RX
+IO_PORT "uart_tx"     IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "uart_rx"     V14;  // FPGA RX <- BL616 TX
+IO_PORT "uart_rx"     IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+// -----------------------------------------------------------------------------
+// Lower PMOD (PMOD0): MUSE PMOD-AUDIO v1.2 (PAM8403 Class-D Amplifier)
+// -----------------------------------------------------------------------------
+IO_LOC  "pmod_audio_l" V19; // PMOD0 Pin 1 -> Left Audio / Loudspeaker (J2)
+IO_PORT "pmod_audio_l" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_audio_r" V18; // PMOD0 Pin 2 -> Right Audio / Headphone Jack
+IO_PORT "pmod_audio_r" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// -----------------------------------------------------------------------------
+// Upper PMOD (PMOD1): PMOD-LEDx8 (8 Status / Activity LEDs)
+// -----------------------------------------------------------------------------
+IO_LOC  "pmod_led[0]" D21;  // PMOD1 Pin 10 (IO7) -> Heartbeat (~1.6 Hz)
+IO_PORT "pmod_led[0]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[1]" E21;  // PMOD1 Pin 4  (IO6) -> Slower Heartbeat (~0.8 Hz)
+IO_PORT "pmod_led[1]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[2]" D22;  // PMOD1 Pin 9  (IO5) -> Reset Active Indicator
+IO_PORT "pmod_led[2]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[3]" E22;  // PMOD1 Pin 3  (IO4) -> UART TX Activity
+IO_PORT "pmod_led[3]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[4]" F20;  // PMOD1 Pin 8  (IO3) -> Audio Playing Indicator
+IO_PORT "pmod_led[4]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[5]" F19;  // PMOD1 Pin 2  (IO2) -> Delta-Sigma Audio PDM Level
+IO_PORT "pmod_led[5]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[6]" W20;  // PMOD1 Pin 7  (IO1) -> APU IRQ Status
+IO_PORT "pmod_led[6]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pmod_led[7]" W19;  // PMOD1 Pin 1  (IO0) -> PLL Lock Status
+IO_PORT "pmod_led[7]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// -----------------------------------------------------------------------------
+// Onboard Console I2S Audio Output
+// -----------------------------------------------------------------------------
+IO_LOC  "hp_bck"      Y17;  // I2S Bit Clock
+IO_PORT "hp_bck"      IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "hp_ws"       AB17; // I2S Word Select / LRCLK
+IO_PORT "hp_ws"       IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "hp_din"      AA16; // I2S Serial Audio Data
+IO_PORT "hp_din"      IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+IO_LOC  "pa_en"       Y14;  // Power Amplifier Enable
+IO_PORT "pa_en"       IO_TYPE=LVCMOS15 PULL_MODE=NONE DRIVE=4 BANK_VCCIO=1.5;
+

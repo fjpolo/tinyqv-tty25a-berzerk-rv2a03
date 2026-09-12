@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Build and flash script for Gowin FPGA (Sipeed Tang Nano 20K).
+    Build and flash script for Gowin FPGA (Sipeed Tang Console 60K).
 
 .DESCRIPTION
     Automates logic synthesis, place & route, bitstream (.fs) generation,
-    and board programming for the TinyQV RV2A03 APU SoC on the Sipeed Tang Nano 20K.
+    and board programming for the TinyQV RV2A03 APU SoC on the Sipeed Tang Console 60K (GW5AT-LV60PG484AC1/I0).
 
 .PARAMETER Target
     Build target: 'all' (default: synthesis + PnR + bitstream), 'syn' (synthesis only), or 'pnr' (PnR only).
@@ -13,7 +13,7 @@
     Cleans the 'impl/' build directory and temporary project files before building.
 
 .PARAMETER FlashMode
-    Flash mode: 'sram' (fast volatile SRAM load) or 'flash' (persistent external SPI Flash programming).
+    Flash mode: 'sram' (fast volatile SRAM load, mode 2) or 'flash' (persistent external SPI Flash programming, mode 53).
 
 .PARAMETER Flash
     Switch flag to enable board programming after building (or standalone if -NoBuild specified).
@@ -23,7 +23,13 @@
     Skips synthesis and PnR, flashing the existing bitstream directly.
 
 .PARAMETER Cable
-    JTAG programmer cable name (default: 'USB Debugger A' for Tang Nano 20K).
+    JTAG programmer cable name (e.g. 'Gowin USB Cable(FT2CH)', 'USB Debugger A', 'Gowin USB Cable(WINUSB)', 'Gowin USB Cable(GWU2X)').
+
+.PARAMETER CableIndex
+    Programmer cable index (0: GWU2X, 1: FT2CH, 4: USB Debugger A, 5: WINUSB).
+
+.PARAMETER ProgMode
+    Custom operation number override for programmer_cli (default: 2 for sram, 53 for flash).
 
 .PARAMETER Scan
     Scans for connected Gowin USB cables and FPGA JTAG devices.
@@ -45,19 +51,19 @@
 
 .EXAMPLE
     .\build.ps1 -FlashMode flash -Flash
-    # Build and write bitstream to Tang Nano 20K persistent external SPI Flash
+    # Build and write bitstream to Tang Console 60K persistent SPI Flash
 
 .EXAMPLE
     .\build.ps1 -Flash sram
-    # Build and load bitstream directly into Tang Nano 20K SRAM
+    # Build and load bitstream directly into Tang Console 60K SRAM
 
 .EXAMPLE
-    .\build.ps1 -NoBuild -FlashMode flash
-    # Flash existing bitstream to persistent SPI Flash without rebuilding
+    .\build.ps1 -NoBuild -Flash sram
+    # Flash existing bitstream to SRAM without rebuilding
 
 .EXAMPLE
     .\build.ps1 -Scan
-    # Detect connected Tang Nano 20K board
+    # Detect connected Tang Console 60K board and cables
 #>
 
 [CmdletBinding()]
@@ -72,7 +78,11 @@ param (
 
     [switch]$Flash,
 
-    [string]$Cable = "USB Debugger A",
+    [string]$Cable = "",
+
+    [int]$CableIndex = -1,
+
+    [int]$ProgMode = -1,
 
     [switch]$NoBuild,
 
@@ -107,8 +117,9 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "   Sipeed Tang Nano 20K - Gowin EDA Build Flow" -ForegroundColor Cyan
+Write-Host "   Sipeed Tang Console 60K - Gowin EDA Build Flow" -ForegroundColor Cyan
 Write-Host "   Project: TinyQV RISC-V SoC + RV2A03 APU" -ForegroundColor Cyan
+Write-Host "   FPGA   : GW5AT-LV60PG484AC1/I0 (Arora V GW5AT-60B)" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # -----------------------------------------------------------------------------
@@ -184,7 +195,8 @@ if ($Scan) {
     Write-Host "`nScanning for connected Gowin USB cables and devices..." -ForegroundColor Yellow
     & $ProgCli --scan-cables
     $CableArgs = @()
-    if ($Cable) { $CableArgs = @("--cable", $Cable) }
+    if ($CableIndex -ge 0) { $CableArgs = @("--cable-index", $CableIndex) }
+    elseif ($Cable) { $CableArgs = @("--cable", $Cable) }
     & $ProgCli @CableArgs --scan
     exit 0
 }
@@ -199,7 +211,7 @@ if ($Clean) {
         Remove-Item -Recurse -Force $ImplDir
         Write-Host "[OK] Removed $ImplDir" -ForegroundColor Green
     }
-    $UserFile = Join-Path $ScriptDir "nano20k.gprj.user"
+    $UserFile = Join-Path $ScriptDir "console60k.gprj.user"
     if (Test-Path $UserFile) {
         Remove-Item -Force $UserFile
     }
@@ -208,7 +220,7 @@ if ($Clean) {
 # -----------------------------------------------------------------------------
 # 4. Run Build Process
 # -----------------------------------------------------------------------------
-$BitstreamPath = Join-Path $ScriptDir "impl\pnr\nano20k.fs"
+$BitstreamPath = Join-Path $ScriptDir "impl\pnr\console60k.fs"
 
 if (-not $NoBuild) {
     $TclScript = Join-Path $ScriptDir "build.tcl"
@@ -265,26 +277,31 @@ if ($Flash) {
     }
 
     $CableArgs = @()
-    if ($Cable) {
+    if ($CableIndex -ge 0) {
+        $CableArgs = @("--cable-index", $CableIndex)
+    } elseif ($Cable) {
         $CableArgs = @("--cable", $Cable)
     }
 
-    Write-Host "`n============================================================" -ForegroundColor Cyan
-    Write-Host "  Flashing Tang Nano 20K (Mode: $FlashMode)..." -ForegroundColor Cyan
-    Write-Host "============================================================" -ForegroundColor Cyan
-
-    if ($FlashMode -eq "sram") {
-        # Mode 2: SRAM Program (volatile, instant test)
-        Write-Host "Programming directly into SRAM (volatile)..." -ForegroundColor Yellow
-        & $ProgCli @CableArgs --device "GW2AR-18C" --run 2 --fsFile "$BitstreamPath"
+    $OpCode = 2
+    if ($ProgMode -ge 0) {
+        $OpCode = $ProgMode
+    } elseif ($FlashMode -eq "sram") {
+        # Mode 2: SRAM Program (volatile, instantaneous testing)
+        $OpCode = 2
     } elseif ($FlashMode -eq "flash") {
-        # Mode 8: exFlash Erase and Program (non-volatile, persistent onboard Winbond SPI Flash)
-        Write-Host "Programming onboard external SPI Flash (exFlash, persistent)..." -ForegroundColor Yellow
-        & $ProgCli @CableArgs --device "GW2AR-18C" --run 8 --fsFile "$BitstreamPath"
+        # Mode 53: exFlash Erase,Program Arora V (non-volatile, persistent SPI Flash)
+        $OpCode = 53
     }
 
+    Write-Host "`n============================================================" -ForegroundColor Cyan
+    Write-Host "  Flashing Tang Console 60K (Mode: $FlashMode, OpCode: $OpCode)..." -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+
+    & $ProgCli @CableArgs --device "GW5AT-60B" --run $OpCode --fsFile "$BitstreamPath"
+
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "`n[SUCCESS] FPGA successfully programmed!" -ForegroundColor Green
+        Write-Host "`n[SUCCESS] Tang Console 60K successfully programmed!" -ForegroundColor Green
     } else {
         Write-Host "`n[ERROR] Programming failed with code $LASTEXITCODE." -ForegroundColor Red
         exit $LASTEXITCODE
