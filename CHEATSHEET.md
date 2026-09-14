@@ -242,7 +242,9 @@ python serial_monitor.py COM17 115200
 ### VS Code Task Integration
 - Press `Ctrl+Shift+P` $\rightarrow$ **`Tasks: Run Task`** $\rightarrow$ select **`Serial Monitor: Tang Nano 20K (115200)`**.
 
-### Expected UART Output
+### Expected UART Output & Synthesizer Interface
+Upon boot, the firmware runs the 5/5 self-test suite and opens the live interactive NES Synthesizer & Soundboard:
+
 ```text
 =====================================================
   TinyQV RV2A03 NES APU Sound Peripheral Testsuite  
@@ -250,17 +252,45 @@ python serial_monitor.py COM17 115200
 =====================================================
 
 [TEST 1] Testing Square Channel 1 (440 Hz)... PASS
-[TEST 2] Testing Square Channel 2 (880 Hz)... PASS
+[TEST 2] Testing Square Channel 2 (440 Hz)... PASS
 [TEST 3] Testing Triangle Channel (440 Hz)... PASS
-[TEST 4] Testing Noise Channel... PASS
+[TEST 4] Testing Noise Channel.............. PASS
 [TEST 5] Testing All Channels Simultaneously... PASS
 
 -----------------------------------------------------
 Test Results: 5/5 tests passed successfully.
 -----------------------------------------------------
-Starting NES Chiptune Demo: 'Berzerk APU Theme'...
-Playing 4-bar melody with arpeggio and bass line...
-Demo complete! APU muted.
+
+  ============================================================
+     TinyQV RV2A03 NES APU LIVE SYNTHESIZER & SOUNDBOARD      
+        Target: Sky25a Berzerk | QWERTZ / QWERTY Ready        
+  ============================================================
+
+  PIANO KEYS (Chromatic 1.5 Octaves):
+    Black:       [W]   [E]         [T]   [Z]   [U]         [O]   [P]
+                 C#    D#          F#    G#    A#          C#    D#
+    White:    [A]   [S]   [D]   [F]   [G]   [H]   [J]   [K]
+               C     D     E     F     G     A     B     C+
+    * Tip: Both 'Z' (QWERTZ) and 'Y' (QWERTY) play G#!
+
+  CHANNELS:   [1] Pulse 1 (Lead)    [2] Pulse 2 (Harmony)
+              [3] Triangle (Bass)   [4] Noise (Percussion)
+
+  CONTROLS:   [Q] Cycle Duty Cycle (12.5%, 25%, 50%, 75%)
+              [,] Octave Down       [.] Octave Up   (Range 2-6)
+              [-] Volume Down       [+] Volume Up   (Range 0-15)
+              [SPACE] Mute Note     [M] Mute All
+
+  SOUNDBOARD: [C] Coin!    [B] Jump!       [X] Explosion!
+              [V] 1-Up!    [N] Snare Hit   [L] Laser / Warp!
+
+  JUKEBOX:    [5] Super Mario Bros. Theme
+              [6] Berzerk APU Theme
+              [7] Zelda Secret Fanfare
+
+  SYSTEM:     [R] Dump APU Regs     [*] Run 5/5 Self-Test
+              [?] Show this Guide
+  ============================================================
 ```
 
 ---

@@ -382,9 +382,17 @@ Press the **S1** button on the board (near the HDMI port) to reset the SoC. You 
 -----------------------------------------------------
 Test Results: 5/5 tests passed successfully.
 -----------------------------------------------------
-Starting NES Chiptune Demo: 'Berzerk APU Theme'...
-Playing 4-bar melody with arpeggio and bass line...
-Demo complete! APU muted.
+
+  ============================================================
+     TinyQV RV2A03 NES APU LIVE SYNTHESIZER & SOUNDBOARD      
+        Target: Sky25a Berzerk | QWERTZ / QWERTY Ready        
+  ============================================================
+
+  PIANO KEYS:  White: [A..K] (C4..C5) | Black: [W,E,T,Z/Y,U,O,P]
+  CONTROLS:    [1..4] Channels  [Q] Duty  [,/.] Octave  [-/+] Vol
+  SOUNDBOARD:  [C] Coin  [B] Jump  [X] Explosion  [V] 1-Up  [L] Laser
+  JUKEBOX:     [5] Mario  [6] Berzerk  [7] Zelda Fanfare
+  ============================================================
 ```
 
 ---
