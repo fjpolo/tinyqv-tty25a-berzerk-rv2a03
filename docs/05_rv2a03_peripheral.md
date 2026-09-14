@@ -6,6 +6,17 @@ The **RV2A03** is an open-source hardware implementation of the Nintendo NES Aud
 
 It occupies **Slot 14** (`0x8000380` - `0x80003BF`) on the TinyQV on-chip peripheral bus and provides authentic 8-bit chiptune synthesis with direct 16-bit digital PCM sample readout.
 
+### Silicon Layout & 3D Visualization
+
+* **2D ASIC GDSII Layout**:
+
+  ![RV2A03 ASIC 2D GDS Layout](https://camo.githubusercontent.com/cac6e18a82b61a7fb0bae33d039d30e6a5a63dab5986ba3d7df82a8f59b8f89e/68747470733a2f2f666a706f6c6f2e6769746875622e696f2f74696e7971762d7276326130332f6764735f72656e6465722e706e67)
+
+* **Interactive 3D GDS Viewer**:
+  Explore the fabricated Skywater 130nm standard cells, metal layers, and routing in your browser:
+  - 🌐 **[Open Interactive 3D GDS Viewer](https://fjpolo.github.io/tinyqv-rv2a03/)** *(powered by Tiny Tapeout WebGL GDS Viewer)*
+  - 🔗 Direct WebGL Model URL: [https://gds-viewer.tinytapeout.com/?process=SKY130&model=https%3A%2F%2Ffjpolo.github.io%2Ftinyqv-rv2a03%2Ftinytapeout.gds](https://gds-viewer.tinytapeout.com/?process=SKY130&model=https%3A%2F%2Ffjpolo.github.io%2Ftinyqv-rv2a03%2Ftinytapeout.gds)
+
 ```
                      +---------------------------------------+
                      |         RV2A03 Peripheral             |

@@ -88,4 +88,7 @@ graph TD
 * To understand how the CPU boots and accesses memory: **[Chapter 01: TinyQV SoC Architecture](01_tinyqv_architecture.md)**
 * To learn how to build or connect a new peripheral: **[Chapter 02: Peripherals & Slots](02_peripherals_and_slots.md)** & **[Chapter 03: Bus Protocol](03_peripheral_bus_protocol.md)**
 * To understand classical NES chiptune synthesis: **[Chapter 04: Nintendo NES APU Architecture](04_nes_apu_architecture.md)**
-* To program, debug, or understand our silicon chip: **[Chapter 05: RV2A03 Peripheral & Comparison](05_rv2a03_peripheral.md)**
+* To program, debug, or inspect our silicon chip: **[Chapter 05: RV2A03 Peripheral & Comparison](05_rv2a03_peripheral.md)**
+* **Silicon Visualization**:
+  - 🖼️ [2D ASIC GDSII Layout Render](https://camo.githubusercontent.com/cac6e18a82b61a7fb0bae33d039d30e6a5a63dab5986ba3d7df82a8f59b8f89e/68747470733a2f2f666a706f6c6f2e6769746875622e696f2f74696e7971762d7276326130332f6764735f72656e6465722e706e67)
+  - 🌐 [Interactive 3D GDS WebGL Viewer](https://fjpolo.github.io/tinyqv-rv2a03/)

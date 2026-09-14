@@ -110,7 +110,7 @@ Write-Host "  Exit      : Press Ctrl+C to disconnect" -ForegroundColor Gray
 Write-Host "============================================================`n" -ForegroundColor Green
 
 # Open serial port
-$sp = New-Object System.IO.Ports.SerialPort $Port, $BaudRate, [System.IO.Ports.Parity]::None, 8, [System.IO.Ports.StopBits]::One
+$sp = [System.IO.Ports.SerialPort]::new($Port, $BaudRate, [System.IO.Ports.Parity]::None, 8, [System.IO.Ports.StopBits]::One)
 $sp.Handshake = [System.IO.Ports.Handshake]::None
 $sp.ReadTimeout = 500
 $sp.WriteTimeout = 500

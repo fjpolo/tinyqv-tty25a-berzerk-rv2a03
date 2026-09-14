@@ -314,7 +314,7 @@ Test Results: 5/5 tests passed successfully.
               [V] 1-Up!    [N] Snare Hit   [9/I] Barrel Drum (Boom!)
               [0/D] Cycle Barrel Distortion (0:Clean -> 1:Warm -> 2:Fuzz -> 3:Doom)
 
-  JUKEBOX:    [5] Super Mario Bros. Theme
+  JUKEBOX:    [5] BlasNESmous Theme (Carlos Viola / @fjpolo)
               [6] Berzerk APU Theme
               [7] Zelda Secret Fanfare
 
@@ -591,7 +591,7 @@ The testsuite firmware boots directly into an interactive, zero-latency synthesi
 - `<-` / `->` (Arrow Keys): Octave Down / Up (range: Octaves 2–6)
 - `v` / `^` (Arrow Keys): Volume Down / Up (range: 0–15)
 - `Q`: Cycle Pulse Duty Cycle (`12.5%`, `25%`, `50%`, `75%`)
-- `5` / `6` / `7`: Jukebox (`5`: Mario Bros., `6`: Berzerk Theme, `7`: Zelda Fanfare)
+- `5` / `6` / `7`: Jukebox (`5`: BlasNESmous Theme, `6`: Berzerk Theme, `7`: Zelda Fanfare)
 - `SPACE` / `M`: Mute active note / all channels
 - `R`: Dump APU hardware registers to terminal
 - `*`: Run 5/5 hardware self-test
