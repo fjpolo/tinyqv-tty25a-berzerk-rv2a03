@@ -530,3 +530,40 @@ git push origin master
   - `LED[4]` (Pin `19`): Audio amplifier enabled
   - `LED[5]` (Pin `20`): Heartbeat 1 (~0.8 Hz)
 - **UART Port**: BL616 USB-Serial on `COM17` (`tx`: Pin `69` via `uo_out[0]`) at 115200 8N1
+
+---
+
+## 13. Interactive UART NES Synthesizer & Soundboard
+
+The testsuite firmware boots directly into an interactive, zero-latency synthesizer and soundboard REPL accessible via ANSI terminal or PowerShell monitor (`.\serial_monitor.bat`).
+
+### Keyboard Controls & Keymaps
+
+#### Piano Keyboard (Chromatic 1.5 Octaves)
+- **White Keys (Home Row)**: `A` (C), `S` (D), `D` (E), `F` (F), `G` (G), `H` (A, 440 Hz), `J` (B), `K` (C+ high octave)
+- **Black Keys (Top Row)**: `W` (C#), `E` (D#), `T` (F#), `Z`/`Y` (G#, QWERTZ & QWERTY supported), `U` (A#), `O` (C#+), `P` (D#+)
+
+#### Soundboard Retro SFX
+- `B`: **Barrel Drum** (Deep 808-style pitch drop + noise strike + multi-mode hardware distortion)
+- `0` / `D`: **Cycle Distortion**:
+  - `Level 0`: Clean Acoustic (Smooth kick drum)
+  - `Level 1`: Warm Saturation (Soft clipping & punch)
+  - `Level 2`: Metallic Fuzz (High-frequency clipping)
+  - `Level 3`: Industrial Doom (Hard clipping + wavefold decay)
+- `9` / `I`: **Jump!** (Ascending square pitch sweep)
+- `C`: **Coin!** (Mario B5 $\rightarrow$ E6 arpeggio)
+- `X`: **Explosion!** (Low-frequency noise rumble)
+- `L` / `8`: **Laser / Warp!** (Descending square chirp)
+- `V`: **1-Up!** (Ascending major arpeggio)
+- `N`: **Snare Hit** (Crisp noise crack)
+
+#### Channel Selection & Controls
+- `1` / `2` / `3` / `4`: Select active channel (Pulse 1 Lead, Pulse 2 Harmony, Triangle Bass, Noise Percussion)
+- `<-` / `->` (Arrow Keys): Octave Down / Up (range: Octaves 2–6)
+- `v` / `^` (Arrow Keys): Volume Down / Up (range: 0–15)
+- `Q`: Cycle Pulse Duty Cycle (`12.5%`, `25%`, `50%`, `75%`)
+- `5` / `6` / `7`: Jukebox (`5`: Mario Bros., `6`: Berzerk Theme, `7`: Zelda Fanfare)
+- `SPACE` / `M`: Mute active note / all channels
+- `R`: Dump APU hardware registers to terminal
+- `*`: Run 5/5 hardware self-test
+
