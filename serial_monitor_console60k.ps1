@@ -130,26 +130,44 @@ try {
     # Register Ctrl+C handler
     [Console]::TreatControlCAsInput = $false
 
-    while ($true) {
+    $buffer = New-Object byte[] 4096
+    while ($sp.IsOpen) {
         try {
-            $line = $sp.ReadLine()
-            if ($line) {
-                Write-Host $line
-                if ($logWriter) {
-                    $logWriter.WriteLine($line)
-                    $logWriter.Flush()
+            $bytesToRead = $sp.BytesToRead
+            if ($bytesToRead -gt 0) {
+                $count = [Math]::Min($bytesToRead, $buffer.Length)
+                $read = $sp.Read($buffer, 0, $count)
+                if ($read -gt 0) {
+                    $text = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $read)
+                    [Console]::Write($text)
+                    if ($logWriter) {
+                        $logWriter.Write($text)
+                        $logWriter.Flush()
+                    }
                 }
+            }
+
+            if ([Console]::KeyAvailable) {
+                $keyInfo = [Console]::ReadKey($true)
+                if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq [ConsoleKey]::C) {
+                    break
+                }
+                switch ($keyInfo.Key) {
+                    ([ConsoleKey]::UpArrow)    { $sp.Write(([string][char]27) + "[A") }
+                    ([ConsoleKey]::DownArrow)  { $sp.Write(([string][char]27) + "[B") }
+                    ([ConsoleKey]::RightArrow) { $sp.Write(([string][char]27) + "[C") }
+                    ([ConsoleKey]::LeftArrow)  { $sp.Write(([string][char]27) + "[D") }
+                    default {
+                        if ($keyInfo.KeyChar -ne [char]0) {
+                            $sp.Write([string]$keyInfo.KeyChar)
+                        }
+                    }
+                }
+            } else {
+                Start-Sleep -Milliseconds 5
             }
         } catch [System.TimeoutException] {
-            # Check for partial data in buffer
-            if ($sp.BytesToRead -gt 0) {
-                $raw = $sp.ReadExisting()
-                Write-Host -NoNewline $raw
-                if ($logWriter) {
-                    $logWriter.Write($raw)
-                    $logWriter.Flush()
-                }
-            }
+            # Normal timeout when idle
         }
     }
 } catch [System.Management.Automation.PipelineStoppedException] {

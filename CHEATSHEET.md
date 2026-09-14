@@ -277,9 +277,9 @@ Test Results: 5/5 tests passed successfully.
               [3] Triangle (Bass)   [4] Noise (Percussion)
 
   CONTROLS:   [Q] Cycle Duty Cycle (12.5%, 25%, 50%, 75%)
-              [,] Octave Down       [.] Octave Up   (Range 2-6)
-              [-] Volume Down       [+] Volume Up   (Range 0-15)
-              [SPACE] Mute Note     [M] Mute All
+              [<-] / [->] Octave Down / Up   (Range 2-6)  (or , / .)
+              [v]  / [^]  Volume Down / Up   (Range 0-15) (or - / +)
+              [SPACE] Mute Note              [M] Mute All
 
   SOUNDBOARD: [C] Coin!    [B] Jump!       [X] Explosion!
               [V] 1-Up!    [N] Snare Hit   [L] Laser / Warp!

@@ -183,8 +183,26 @@ try {
                         $logWriter.Flush()
                     }
                 }
+            }
+
+            if ([Console]::KeyAvailable) {
+                $keyInfo = [Console]::ReadKey($true)
+                if ($keyInfo.Modifiers -band [ConsoleModifiers]::Control -and $keyInfo.Key -eq [ConsoleKey]::C) {
+                    break
+                }
+                switch ($keyInfo.Key) {
+                    ([ConsoleKey]::UpArrow)    { $serial.Write(([string][char]27) + "[A") }
+                    ([ConsoleKey]::DownArrow)  { $serial.Write(([string][char]27) + "[B") }
+                    ([ConsoleKey]::RightArrow) { $serial.Write(([string][char]27) + "[C") }
+                    ([ConsoleKey]::LeftArrow)  { $serial.Write(([string][char]27) + "[D") }
+                    default {
+                        if ($keyInfo.KeyChar -ne [char]0) {
+                            $serial.Write([string]$keyInfo.KeyChar)
+                        }
+                    }
+                }
             } else {
-                Start-Sleep -Milliseconds 10
+                Start-Sleep -Milliseconds 5
             }
         } catch [System.TimeoutException] {
             # Normal timeout when idle
