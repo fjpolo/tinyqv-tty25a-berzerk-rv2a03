@@ -17,6 +17,8 @@ A concise, comprehensive reference guide and command cheatsheet for the **TinyQV
 10. [ASIC Tapeout Flow (OpenLane)](#10-asic-tapeout-flow-openlane)
 11. [Git Submodule Maintenance](#11-git-submodule-maintenance)
 12. [Hardware Pinouts & Diagnostics](#12-hardware-pinouts--diagnostics)
+13. [Interactive UART NES Synthesizer & Soundboard](#13-interactive-uart-nes-synthesizer--soundboard)
+14. [TTSKY25a EVK ASIC Target & Flashing Guide](#14-ttsky25a-evk-asic-target--flashing-guide)
 
 ---
 
@@ -24,9 +26,11 @@ A concise, comprehensive reference guide and command cheatsheet for the **TinyQV
 
 | Task | Platform / Shell | Command |
 | :--- | :--- | :--- |
-| **Compile firmware & sync hex** | PowerShell / CMD | `.\build_firmware.bat` |
+| **Compile all firmware (FPGA + ASIC)** | PowerShell / CMD | `.\build_firmware.bat` or `.\build_firmware.bat -Target all` |
+| **Compile FPGA firmware only** | PowerShell / CMD | `.\build_firmware.bat -Target fpga` |
+| **Compile ASIC firmware only (TTSKY25a EVK)** | PowerShell / CMD | `.\build_firmware.bat -Target asic` |
 | **Clean & recompile firmware** | PowerShell / CMD | `.\build_firmware.bat -Clean` |
-| **Compile firmware (Linux / WSL)** | Bash | `./build_firmware.sh --clean` |
+| **Compile firmware (Linux / WSL)** | Bash | `./build_firmware.sh --target asic` |
 | **End-to-End: Firmware $\rightarrow$ Bitstream $\rightarrow$ Flash Console 60K** | PowerShell / CMD | `.\build_firmware.bat -RebuildFpga console60k -Flash sram` |
 | **End-to-End: Firmware $\rightarrow$ Bitstream $\rightarrow$ Flash Nano 20K** | PowerShell / CMD | `.\build_firmware.bat -RebuildFpga nano20k -Flash flash` |
 | **Build Console 60K FPGA bitstream** | PowerShell / CMD | `.\build_console60k.bat` |
@@ -49,7 +53,9 @@ A concise, comprehensive reference guide and command cheatsheet for the **TinyQV
 
 | Directory | Submodule / Repository | Configured Branch | Purpose |
 | :--- | :--- | :--- | :--- |
-| `tinyQV-projects/rv2a03_test` | `fjpolo/tinyQV-projects` | `dev/20290907` | RV2A03 self-checking testsuite & chiptune demo |
+| `tinyQV-projects/rv2a03_fpga` | Local Workspace | - | FPGA emulation firmware (27 MHz clock, direct DAC/PDM taps) |
+| `tinyQV-projects/rv2a03_asic` | Local Workspace | - | Physical ASIC firmware (64 MHz clock, GPIO muxing, QSPI XIP flash) |
+| `tinyQV-projects/rv2a03_test` | `fjpolo/tinyQV-projects` | `dev/20290907` | Original/legacy RV2A03 self-checking testsuite & chiptune demo |
 | `tinyQV-sdk-fjpolo` | `fjpolo/tinyQV-sdk-fjpolo` | `main` | C runtime, linker scripts, and RV2A03 peripheral driver |
 | `FPGA/GOWIN/console60k` | Local Workspace | `master` | Gowin Arora V GW5AT-60B FPGA implementation |
 | `FPGA/GOWIN/nano20k` | Local Workspace | `master` | Gowin GW2AR-18C FPGA implementation |
@@ -64,13 +70,32 @@ A concise, comprehensive reference guide and command cheatsheet for the **TinyQV
 
 ## 3. Firmware Build System
 
-The firmware build scripts automatically compile the C firmware in `tinyQV-projects/rv2a03_test`, verify binary size against the 32 KB BRAM ceiling, and synchronize `rv2a03_test.hex` to both `FPGA/GOWIN/console60k/src/` and `FPGA/GOWIN/nano20k/src/`.
+The firmware repository provides **two distinct firmware targets** tailored to the architectural differences between FPGA emulation and physical ASIC silicon:
+
+1. **FPGA Emulation Target** (`tinyQV-projects/rv2a03_fpga`):
+   - **Clock**: 27.000 MHz FPGA system clock.
+   - **Audio / I/O**: Direct DAC/PDM audio pipeline on FPGA fabric; no GPIO pin function muxing required.
+   - **Memory format**: Verilog text hex (`rv2a03_fpga.hex` / `rv2a03_test.hex`), loaded into Gowin internal BRAM at synthesis.
+
+2. **Physical ASIC Silicon Target** (`tinyQV-projects/rv2a03_asic`):
+   - **Clock**: Nominal 64 MHz on Skywater 130nm silicon (configurable via `ASIC_CLOCK_MHZ`).
+   - **UART & Timer Baudrate**: Hardware UART clock divider (`0x8000088`) and `MTIME` counter divider (`0x800002C`) dynamically calculated for 115,200 baud and 1 MHz timer ticks at 64 MHz.
+   - **ASIC Pin Multiplexing (`FUNC_SEL`)**: The physical chip powers up with `uo_out[7:0]` in default GPIO mode. The ASIC firmware calls `enable_all_outputs()` and routes `uo_out[0]` to UART TX (`set_gpio_func(0, 2)`) and `uo_out[1..7]` to Peripheral 14 (`set_gpio_func(1..7, 14)`), routing `apu_IRQ` and `apu_o_ce` to the external headers.
+   - **Memory format**: Raw binary (`rv2a03_asic.bin`), executed directly from external QSPI Flash via XIP.
 
 ### Windows PowerShell / CMD (`build_firmware.bat` / `build_firmware.ps1`)
 
 ```powershell
-# Standard compilation & hex copy:
+# Compile both FPGA and ASIC firmware:
 .\build_firmware.bat
+# or explicitly:
+.\build_firmware.bat -Target all
+
+# Compile FPGA firmware only:
+.\build_firmware.bat -Target fpga
+
+# Compile ASIC firmware only (TTSKY25a EVK):
+.\build_firmware.bat -Target asic
 
 # Clean previous build artifacts and compile from scratch:
 .\build_firmware.bat -Clean
@@ -81,7 +106,7 @@ The firmware build scripts automatically compile the C firmware in `tinyQV-proje
 # Compile without copying hex to FPGA projects:
 .\build_firmware.bat -NoCopyHex
 
-# Full end-to-end pipeline: compile firmware, update hex, rebuild bitstream, and flash FPGA:
+# Full end-to-end FPGA pipeline: compile firmware, update hex, rebuild bitstream, and flash:
 .\build_firmware.bat -RebuildFpga console60k -Flash sram
 .\build_firmware.bat -RebuildFpga console60k -Flash flash
 .\build_firmware.bat -RebuildFpga nano20k -Flash flash
@@ -90,8 +115,12 @@ The firmware build scripts automatically compile the C firmware in `tinyQV-proje
 ### Linux / WSL (`build_firmware.sh`)
 
 ```bash
-# Standard compilation:
+# Compile both targets:
 ./build_firmware.sh
+
+# Compile specific target:
+./build_firmware.sh --target fpga
+./build_firmware.sh --target asic
 
 # Clean & rebuild:
 ./build_firmware.sh --clean
@@ -566,4 +595,61 @@ The testsuite firmware boots directly into an interactive, zero-latency synthesi
 - `SPACE` / `M`: Mute active note / all channels
 - `R`: Dump APU hardware registers to terminal
 - `*`: Run 5/5 hardware self-test
+
+---
+
+## 14. TTSKY25a EVK ASIC Target & Flashing Guide
+
+When receiving the physical **Tiny Tapeout Sky25a Demo Board (EVK)** with your fabricated chip, follow this procedure to run the firmware.
+
+### Hardware Overview
+- **ASIC Silicon**: Tiny Tapeout Sky25a shuttle (Skywater 130nm).
+- **Core Processor**: TinyQV 32-bit RISC-V SoC (`rv32ec_zcb_zicond`).
+- **Peripheral Slot**: **14** (`tt_um_fjpolo_rv2a03`, Berzerk RV2A03 APU).
+- **Carrier Board**: RP2040 companion MCU acts as USB-to-QSPI programmer, clock generator, and USB-UART bridge.
+- **Clock**: Generated by RP2040 (nominal 64 MHz for Sky25a; can be configured 10–64 MHz).
+- **Memory**: External Winbond W25Q16/W25Q32 QSPI Flash PMOD.
+
+### Firmware Binary
+- **Source Project**: [`tinyQV-projects/rv2a03_asic`](file:///c:/Workspace/ASIC/tinyqv-tty25a-berzerk-rv2a03/tinyQV-projects/rv2a03_asic)
+- **Output Binary**: `tinyQV-projects/rv2a03_asic/rv2a03_asic.bin`
+- **Binary Size**: ~26 KB (fits in external QSPI flash, executed via XIP with cache).
+
+### Method 1: Web-Based Flashing (Easiest)
+1. Plug the TTSKY25a EVK into your PC via USB.
+2. Open Chrome/Edge and navigate to **[TinyQV Web Programmer](https://program.tinyqv.com)**.
+3. Click **Connect** and select the EVK COM port (RP2040).
+4. Select the project or drag-and-drop `rv2a03_asic.bin`.
+5. Click **Program Flash**.
+6. Select **Slot 14** (Berzerk RV2A03 APU) and press **Reset**.
+
+### Method 2: CLI Flashing (`tt_commander`)
+```bash
+# Install the Tiny Tapeout Commander CLI:
+pip install git+https://github.com/TinyTapeout/tt-commander
+
+# Select design slot 14:
+python -m tt_commander select 14
+
+# Set system clock to 64 MHz:
+python -m tt_commander clock 64000000
+
+# Program QSPI flash with ASIC firmware:
+python -m tt_commander program flash tinyQV-projects/rv2a03_asic/rv2a03_asic.bin
+
+# Reset SoC and run:
+python -m tt_commander reset
+```
+
+### Serial Monitor Connection
+- Connect terminal emulator (e.g. PuTTY, TeraTerm, or `.\serial_monitor.bat`) to the EVK COM port at **115200 8N1**.
+- You will see the ASIC startup banner:
+  ```
+  =====================================================
+    TinyQV RV2A03 NES APU Sound Peripheral Testsuite  
+    Target: Sky25a Berzerk ASIC Silicon (EVK Board)   
+    Clock:  64 MHz | Peripheral Slot: 14 (RV2A03)      
+  =====================================================
+  ```
+- All keyboard synthesizer and soundboard controls operate identically to the FPGA build.
 

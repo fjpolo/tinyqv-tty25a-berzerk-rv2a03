@@ -5,6 +5,7 @@ Welcome to the multi-repository workspace for the **RV2A03** (Nintendo NES NTSC 
 This repository serves as an umbrella superproject coordinating the hardware peripheral IP, the full SoC ASIC integration, the C software development kit (SDK), and the pre-built RISC-V toolchain.
 
 > [!TIP]
+> Looking for architecture deep-dives and hardware manuals? Explore the [Technical Documentation Library](docs/README.md).  
 > Looking for quick commands, build scripts, and syntax examples? See the [Project Cheatsheet](CHEATSHEET.md).
 
 ---
