@@ -281,8 +281,9 @@ Test Results: 5/5 tests passed successfully.
               [v]  / [^]  Volume Down / Up   (Range 0-15) (or - / +)
               [SPACE] Mute Note              [M] Mute All
 
-  SOUNDBOARD: [C] Coin!    [B] Jump!       [X] Explosion!
-              [V] 1-Up!    [N] Snare Hit   [L] Laser / Warp!
+  SOUNDBOARD: [C] Coin!    [B] Jump!       [X] Explosion!  [L] Laser!
+              [V] 1-Up!    [N] Snare Hit   [9/I] Barrel Drum (Boom!)
+              [0/D] Cycle Barrel Distortion (0:Clean -> 1:Warm -> 2:Fuzz -> 3:Doom)
 
   JUKEBOX:    [5] Super Mario Bros. Theme
               [6] Berzerk APU Theme
