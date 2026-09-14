@@ -4,6 +4,9 @@ Welcome to the multi-repository workspace for the **RV2A03** (Nintendo NES NTSC 
 
 This repository serves as an umbrella superproject coordinating the hardware peripheral IP, the full SoC ASIC integration, the C software development kit (SDK), and the pre-built RISC-V toolchain.
 
+> [!TIP]
+> Looking for quick commands, build scripts, and syntax examples? See the [Project Cheatsheet](CHEATSHEET.md).
+
 ---
 
 ## Workspace Architecture
@@ -260,7 +263,26 @@ This submodule provides a suite of sample applications demonstrating various Tin
 - `ledstrip/`: WS2812B NeoPixel LED strip controller.
 - `hello/`: Minimal UART "Hello, World!" example.
 
-#### Building a Project (e.g., `rv2a03_test` or `donut`)
+#### Automated Firmware Build Script
+A top-level build script is provided to compile the RV2A03 firmware testsuite, report BRAM memory utilization against the 32 KB ceiling, and automatically synchronize the generated hex file to both Tang Console 60K and Tang Nano 20K FPGA directories:
+
+```powershell
+# 1. Compile firmware, report memory usage, and sync hex to FPGA projects:
+.\build_firmware.bat
+
+# 2. Clean and rebuild from scratch:
+.\build_firmware.bat -Clean
+
+# 3. End-to-end: compile firmware, update hex, rebuild bitstream, and flash Tang Console 60K:
+.\build_firmware.bat -RebuildFpga console60k -Flash sram
+```
+
+For Linux / WSL environments:
+```bash
+./build_firmware.sh --clean
+```
+
+#### Manual Project Compilation
 Make sure the SDK runtime libraries are compiled first (`make` in `tinyQV-sdk-fjpolo`), then build:
 
 ```bash
