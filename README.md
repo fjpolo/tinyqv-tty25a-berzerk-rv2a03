@@ -2,10 +2,13 @@
 
 [![CI](https://github.com/fjpolo/tinyqv-tty25a-berzerk-rv2a03/actions/workflows/ci.yml/badge.svg)](https://github.com/fjpolo/tinyqv-tty25a-berzerk-rv2a03/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Shuttle](https://img.shields.io/badge/Tiny%20Tapeout-Sky25a-red.svg)](https://app.tinytapeout.com/shuttles/ttsky25a)
+[![FPGA](https://img.shields.io/badge/FPGA-Tang%20Console%2060K%20%7C%20Nano%2020K-orange.svg)](#6-hardware-emulation-on-fpga-sipeed-tang-nano-20k)
+[![Web Serial Dashboard](https://img.shields.io/badge/Web%20Dashboard-Interactive%20GUI-brightgreen.svg)](#8-interactive-web-serial-dashboard-browser-gui)
 
 Welcome to the multi-repository workspace for the **RV2A03** (Nintendo NES NTSC Ricoh 2A03 APU audio peripheral) integrated into the **TinyQV** RISC-V System-on-Chip (SoC) for the [Tiny Tapeout Sky25a shuttle](https://app.tinytapeout.com/shuttles/ttsky25a) ("Berzerk" instance).
 
-This repository serves as an umbrella superproject coordinating the hardware peripheral IP, the full SoC ASIC integration, the C software development kit (SDK), and the pre-built RISC-V toolchain.
+This repository serves as an umbrella superproject coordinating the hardware peripheral IP, the full SoC ASIC integration, the C software development kit (SDK), the dual FPGA/ASIC firmware projects, the interactive Web Serial GUI dashboard, and the pre-built RISC-V toolchain.
 
 > [!TIP]
 > Looking for architecture deep-dives and hardware manuals? Explore the [Technical Documentation Library](docs/README.md).  
@@ -24,34 +27,45 @@ graph TD
     subgraph Hardware & SoC
         Peri["tinyqv-rv2a03<br/>(Standalone Peripheral IP)"]
         SoC["ttsky25a-tinyQV-fjpolo-rv2a03<br/>(Full SoC & ASIC Hardening)"]
-        FPGA["FPGA/GOWIN/nano20k<br/>(Sipeed Tang Nano 20K Emulation)"]
+        FPGA_Nano["FPGA/GOWIN/nano20k<br/>(Tang Nano 20K Emulation)"]
+        FPGA_Console["FPGA/GOWIN/console60k<br/>(Tang Console 60K + PMODs)"]
     end
 
-    subgraph Software & Firmware
+    subgraph Software & Tools
         SDK["tinyQV-sdk-fjpolo<br/>(C Software Development Kit)"]
-        Projects["tinyQV-projects<br/>(Demo Applications & Examples)"]
+        FW_FPGA["rv2a03_fpga<br/>(Live Synth & Jukebox Firmware)"]
+        FW_ASIC["rv2a03_asic<br/>(Physical Silicon EVK Firmware)"]
+        WebGUI["web/<br/>(Web Serial Dashboard & Visualizer)"]
         uPy["micropython<br/>(MicroPython tinyqv-sky25a Port)"]
     end
 
-    subgraph Toolchain
+    subgraph Toolchain & CI
         TC["riscv32ec-15.1.0-tqv-2.0.tar.gz<br/>(GNU Toolchain v2.0)"]
+        CI["GitHub Actions<br/>(Firmware, RTL sim, Releases)"]
     end
 
     Super --> Peri
     Super --> SoC
-    Super --> FPGA
+    Super --> FPGA_Nano
+    Super --> FPGA_Console
     Super --> SDK
-    Super --> Projects
+    Super --> FW_FPGA
+    Super --> FW_ASIC
+    Super --> WebGUI
     Super --> uPy
     Super --> TC
+    Super --> CI
 
     Peri -- "Integrated as Peripheral #15" --> SoC
-    SoC -- "Synthesized for GW2AR-18C" --> FPGA
+    SoC -- "Synthesized for GW2AR-18C" --> FPGA_Nano
+    SoC -- "Synthesized for GW5AT-60B" --> FPGA_Console
     TC -- "Cross-compiles for RV32EC" --> SDK
-    SDK -- "Provides runtime & headers" --> Projects
-    SDK -- "Provides runtime & headers" --> uPy
-    SDK -- "Produces binaries (.bin / .hex)" --> SoC
-    Projects -- "Embeds rv2a03_test.hex" --> FPGA
+    SDK -- "Provides runtime & drivers" --> FW_FPGA
+    SDK -- "Provides runtime & drivers" --> FW_ASIC
+    FW_FPGA -- "Embeds rv2a03_test.hex" --> FPGA_Console
+    FW_FPGA -- "Embeds rv2a03_test.hex" --> FPGA_Nano
+    WebGUI -- "UART @ 115200 (Web Serial)" --> FPGA_Console
+    WebGUI -- "UART @ 115200 (Web Serial)" --> FPGA_Nano
 ```
 
 ---
@@ -62,12 +76,15 @@ graph TD
 | :--- | :--- | :--- | :--- | :--- |
 | **Full SoC Integration** | [`ttsky25a-tinyQV-fjpolo-rv2a03`](ttsky25a-tinyQV-fjpolo-rv2a03/) | [`fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03`](https://github.com/fjpolo/ttsky25a-tinyQV-fjpolo-rv2a03) | `fjpolo/RV2A03` | Top-level TinyQV SoC ("Berzerk" instance) integrating the RISC-V processor, interconnect, memory bus, and all peripherals including RV2A03 (`tqvp_fjpolo_rv2a03`). Used for full-chip tapeout hardening (OpenLane) and system-level verification. |
 | **RV2A03 Peripheral IP** | [`tinyqv-rv2a03`](tinyqv-rv2a03/) | [`fjpolo/tinyqv-rv2a03`](https://github.com/fjpolo/tinyqv-rv2a03) | `main` | Standalone hardware repository for the RV2A03 audio peripheral (based on `tinyqv-full-peripheral-template`). Contains synthesizable Verilog (`apu.v`), SPI interface, unit-level cocotb testbench, and register definitions. |
-| **FPGA Target (Nano 20K)** | [`FPGA/GOWIN/nano20k`](FPGA/GOWIN/nano20k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Nano 20K** (Gowin GW2AR-18C). Features real-time 16-bit 46.875 kHz I2S audio via the onboard MAX98357A amplifier, autonomous BRAM boot, and 115200 baud UART logging. |
 | **FPGA Target (Console 60K)** | [`FPGA/GOWIN/console60k`](FPGA/GOWIN/console60k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Console 60K** (Gowin GW5AT-60B). Features real-time Delta-Sigma audio output driving a **MUSE PMOD-AUDIO v1.2** loudspeaker, an 8-LED status bar (**PMOD-LEDx8**), onboard I2S audio, and 115200 baud UART. |
-| **TinyQV C SDK** | [`tinyQV-sdk-fjpolo`](tinyQV-sdk-fjpolo/) | [`fjpolo/tinyQV-sdk-fjpolo`](https://github.com/fjpolo/tinyQV-sdk-fjpolo) | `main` | C SDK fork for writing firmware and bare-metal applications targeting TinyQV. Contains startup assembly (`start.s`), linker scripts, runtime libraries, and peripheral drivers (UART, SPI, Timer, GPIO, Gamepad, PRISM, VGA). |
-| **Demo Projects** | [`tinyQV-projects`](tinyQV-projects/) | [`fjpolo/tinyQV-projects`](https://github.com/fjpolo/tinyQV-projects) | `dev/20290907` | Curated collection of standalone demo applications and firmware examples for TinyQV (e.g., RV2A03 hardware test & chiptune demo, 3D ASCII donut, VGA graphics, LCD, cellular automata, UART echo). |
+| **FPGA Target (Nano 20K)** | [`FPGA/GOWIN/nano20k`](FPGA/GOWIN/nano20k/) | Local Workspace | `master` | Self-contained Gowin EDA FPGA implementation targeting the **Sipeed Tang Nano 20K** (Gowin GW2AR-18C). Features real-time 16-bit 46.875 kHz I2S audio via the onboard MAX98357A amplifier, autonomous BRAM boot, and 115200 baud UART logging. |
+| **FPGA Firmware Project** | [`tinyQV-projects/rv2a03_fpga`](tinyQV-projects/rv2a03_fpga/) | Local Workspace | - | Interactive Live Synthesizer, Retro Soundboard (Coin, Jump, Laser, Explosion, 1-Up, Snare, Barrel Drum with 4 distortion modes), Chiptune Jukebox (*BlasNESmous Theme*, *Berzerk*, *Zelda*), and 5/5 self-test suite calibrated for 27 MHz FPGA clock. |
+| **ASIC Silicon Firmware Project** | [`tinyQV-projects/rv2a03_asic`](tinyQV-projects/rv2a03_asic/) | Local Workspace | - | Pre-configured firmware tailored for physical silicon on the **Tiny Tapeout Sky25a Demo Board / EVK** (64 MHz system clock, GPIO pin muxing via `FUNC_SEL`, and QSPI XIP flash). |
+| **Web Serial Dashboard** | [`web/`](web/) | Local Workspace | - | Zero-install, browser-based Web Serial GUI & Synthesizer with **FamiCom Red** piano keys, retro arcade soundboard pads, real-time oscilloscope, and bi-directional UART telemetry. |
+| **TinyQV C SDK** | [`tinyQV-sdk-fjpolo`](tinyQV-sdk-fjpolo/) | [`fjpolo/tinyQV-sdk-fjpolo`](https://github.com/fjpolo/tinyQV-sdk-fjpolo) | `main` | C SDK fork for writing firmware and bare-metal applications targeting TinyQV. Contains startup assembly (`start.s`), linker scripts, runtime libraries, and peripheral drivers (UART, SPI, Timer, GPIO, Gamepad, PRISM, VGA, RV2A03). |
+| **Demo Projects** | [`tinyQV-projects`](tinyQV-projects/) | [`fjpolo/tinyQV-projects`](https://github.com/fjpolo/tinyQV-projects) | `dev/20290907` | Curated collection of standalone demo applications and firmware examples for TinyQV (3D ASCII donut, VGA graphics, LCD, cellular automata, UART echo). |
 | **MicroPython Port** | [`micropython`](micropython/) | [`MichaelBell/micropython`](https://github.com/MichaelBell/micropython) | `tinyqv-sky25a` | Minimal MicroPython runtime ported for TinyQV on the Sky25a shuttle. Provides an interactive Python REPL over UART (115200 baud) and hardware access via `machine.Pin` and SPI. |
-| **GNU Toolchain (v2.0)** | [`riscv32ec-15.1.0-tqv-2.0.tar.gz`](https://github.com/MichaelBell/riscv-gnu-toolchain/releases/tag/15.1.0-tqv-2.0) | [Upstream Release](https://github.com/MichaelBell/riscv-gnu-toolchain/releases/tag/15.1.0-tqv-2.0) | `15.1.0-tqv-2.0` | Pre-built custom RISC-V GNU GCC toolchain (`riscv32ec-15.1.0-tqv-2.0`) configured for GCC 15 with `rv32ec_zcb_zicond` / `ilp32e` required for TinyQV on the Sky25a shuttle. Avoids compiling GCC from source. |
+| **GNU Toolchain (v2.0)** | [`riscv32ec-15.1.0-tqv-2.0.tar.gz`](https://github.com/MichaelBell/riscv-gnu-toolchain/releases/tag/15.1.0-tqv-2.0) | [Upstream Release](https://github.com/MichaelBell/riscv-gnu-toolchain/releases/tag/15.1.0-tqv-2.0) | `15.1.0-tqv-2.0` | Pre-built custom RISC-V GNU GCC toolchain (`riscv32ec-15.1.0-tqv-2.0`) configured for GCC 15 with `rv32ec_zcb_zicond` / `ilp32e` required for TinyQV on the Sky25a shuttle. |
 
 ---
 
@@ -255,42 +272,68 @@ cd ttsky25a-tinyQV-fjpolo-rv2a03
 
 ---
 
-### 4. Demo Applications & Showcase (`tinyQV-projects`)
+### 4. Firmware Projects & Showcase (`tinyQV-projects`)
 
-This submodule provides a suite of sample applications demonstrating various TinyQV features, peripherals, and graphics.
+The repository provides production-grade firmware projects targeting both physical silicon and FPGA emulation:
 
-#### Key Examples
-- `rv2a03_test/`: **RV2A03 Hardware Verification & Chiptune Demo**. Directly translates the 5 cocotb tests (`test_sq1_channel`, `test_sq2_channel`, `test_tri_channel`, `test_noise_channel`, and `test_all_channels_together`) into self-checking C code reporting test pass/fail over UART, validates sample generation and readback, and plays an authentic NES chiptune melody!
+#### Dual Firmware Targets
+* **`rv2a03_fpga/` (FPGA Emulation Firmware)**:
+  - Calibrated for the **27.000 MHz** FPGA system clock.
+  - Interactive live UART synthesizer (115200 8N1) with **QWERTZ & QWERTY** chromatic keyboard (`A..K`, `W,E,T,Z/Y,U,O,P`).
+  - **Retro NES Soundboard**: Instant SFX for *Coin*, *Jump*, *Laser*, *Explosion*, *1-Up*, *Snare*, and *Barrel Drum*.
+  - **Barrel Drum Distortion Engine**: 4 selectable overdrive modes: Clean Acoustic, Warm Saturation, Metallic Fuzz, and Industrial Doom.
+  - **Chiptune Jukebox**: Polyphonic playback of *BlasNESmous Theme* (Carlos Viola / @fjpolo), *Berzerk APU Theme*, and *Zelda Secret Fanfare*.
+  - Autonomous 32 KB Block RAM boot with direct Delta-Sigma and I2S DAC taps.
+
+* **`rv2a03_asic/` (Physical Silicon EVK Firmware)**:
+  - Calibrated for the **64.000 MHz** Tiny Tapeout Sky25a Demo Board system clock.
+  - Automatically configures peripheral output pin multiplexing via `FUNC_SEL` and `AUDIO_FUNC_SEL` (`uo_out[0]` for audio PWM DAC, `uo_out[1]` for `apu_IRQ`, `uo_out[2]` for `apu_o_ce`).
+  - Linked for external QSPI XIP Flash execution with full PSRAM cache support.
+
+* **`rv2a03_test/` (Hardware Verification Test Suite)**:
+  - 5/5 automated hardware verification self-tests translating the cocotb test suite into bare-metal C.
+
+#### Other SDK Demos
 - `donut/`: Animated ASCII 3D donut rendered over UART.
 - `vga_gfx/` & `vga_console/`: Hardware-accelerated graphics and text console demos using the PRISM/VGA peripheral.
 - `cellular/`: Conway's Game of Life cellular automaton.
 - `ledstrip/`: WS2812B NeoPixel LED strip controller.
 - `hello/`: Minimal UART "Hello, World!" example.
 
-#### Automated Firmware Build Script
-A top-level build script is provided to compile the RV2A03 firmware testsuite, report BRAM memory utilization against the 32 KB ceiling, and automatically synchronize the generated hex file to both Tang Console 60K and Tang Nano 20K FPGA directories:
+#### Automated Multi-Target Firmware Compilation
+A top-level build script is provided to compile either or all targets, enforce the 32 KB BRAM ceiling, and automatically synchronize the generated hex file to both Tang Console 60K and Tang Nano 20K FPGA directories:
 
 ```powershell
-# 1. Compile firmware, report memory usage, and sync hex to FPGA projects:
-.\build_firmware.bat
+# 1. Compile both FPGA and ASIC firmware targets:
+.\build_firmware.bat -Target all
 
-# 2. Clean and rebuild from scratch:
+# 2. Compile FPGA firmware only and update FPGA BRAM hex:
+.\build_firmware.bat -Target fpga
+
+# 3. Compile ASIC firmware only (for TT Sky25a EVK):
+.\build_firmware.bat -Target asic
+
+# 4. Clean and rebuild all targets from scratch:
 .\build_firmware.bat -Clean
 
-# 3. End-to-end: compile firmware, update hex, rebuild bitstream, and flash Tang Console 60K:
+# 5. End-to-end: compile firmware, update hex, rebuild bitstream, and flash Tang Console 60K:
 .\build_firmware.bat -RebuildFpga console60k -Flash sram
 ```
 
 For Linux / WSL environments:
 ```bash
-./build_firmware.sh --clean
+# Build all targets
+./build_firmware.sh --target all --clean
+
+# Build ASIC target only
+./build_firmware.sh --target asic
 ```
 
 #### Manual Project Compilation
 Make sure the SDK runtime libraries are compiled first (`make` in `tinyQV-sdk-fjpolo`), then build:
 
 ```bash
-cd tinyQV-projects/rv2a03_test
+cd tinyQV-projects/rv2a03_fpga
 make
 ```
 
@@ -437,6 +480,23 @@ The workspace includes a modern, zero-install **Web Serial Dashboard & Visual Sy
 - **Real-Time Oscilloscope**: HTML5 Canvas visualizer rendering simulated 2A03 channel waveforms (Pulse 1, Pulse 2, Triangle, Noise) and note frequencies.
 - **Bi-Directional Telemetry**: Parses incoming hardware UART packets to automatically keep UI volume sliders, octave badges, and channel toggles synchronized with physical board button presses.
 
+#### Keyboard Shortcut Matrix
+| Key(s) | Action |
+| :--- | :--- |
+| **`A` .. `K`** | White keys (`C4` to `C5`) |
+| **`W, E, T, Z/Y, U, O, P`** | **FamiCom Red** sharp/flat keys (`C#4, D#4, F#4, G#4, A#4, C#5, D#5`) |
+| **`1` .. `4`** | Channel selection: Pulse 1, Pulse 2, Triangle, Noise |
+| **`Q`** | Cycle Pulse Duty Cycle (`12.5%`, `25%`, `50%`, `75%`) |
+| **`[` / `]`** or **`←` / `→`** | Octave Down / Up (range: 2 to 6) |
+| **`-` / `+`** or **`↓` / `↑`** | Volume Down / Up (range: 0 to 15) |
+| **`Space`** or **`M`** | Mute Audio / Stop playback |
+| **`C`** | Play Mario Coin SFX |
+| **`B`** | Play Barrel Drum hit |
+| **`0` / `D`** | Cycle Barrel Distortion (0:Clean $\rightarrow$ 1:Warm $\rightarrow$ 2:Fuzz $\rightarrow$ 3:Doom) |
+| **`5`, `6`, `7`** | Jukebox: BlasNESmous, Berzerk, Zelda Fanfare |
+| **`R`** | Dump Hardware APU Registers |
+| **`*`** | Run 5/5 Hardware Verification Self-Test |
+
 #### Launching the Dashboard
 Launch with a single click (starts a local server at `http://localhost:8080/web/` and opens your default browser):
 
@@ -448,6 +508,32 @@ Launch with a single click (starts a local server at `http://localhost:8080/web/
 .\launch_dashboard.ps1
 ```
 *(Compatible with Google Chrome, Microsoft Edge, and Opera).*
+
+---
+
+### 9. Automated CI/CD Pipeline (GitHub Actions)
+
+Continuous integration and automated delivery are implemented via GitHub Actions workflows in [`.github/workflows/`](.github/workflows/):
+
+| Workflow | File | Triggers | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **CI** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | `push` (master, main, dev/*, tags), `pull_request`, `workflow_dispatch` | • **Firmware Build**: Compiles `rv2a03_fpga`, `rv2a03_asic`, and `rv2a03_test`<br>• **Size Limit Check**: Enforces `< 32,768` bytes (32 KB BRAM ceiling)<br>• **BRAM Sync Verification**: Checks hex files for Console 60K & Nano 20K match compiled firmware<br>• **Hardware Simulation**: Runs 5/5 APU `cocotb` regression tests with Icarus Verilog<br>• **Verilog Linting**: Checks `peripheral.v` and `apu.v` syntax with `iverilog -g2012` |
+| **Release** | [`.github/workflows/release.yml`](.github/workflows/release.yml) | `push` tags (`*`), `workflow_dispatch` | • Compiles production binaries<br>• Packages `.bin`, `.hex`, and `.zip` archives<br>• Publishes official GitHub Releases with auto-generated changelog |
+
+---
+
+### 10. Silicon Layout & Interactive 3D Visualizer
+
+The RV2A03 audio peripheral is physically hardened on the **SkyWater 130nm (`sky130A`)** CMOS process for the [Tiny Tapeout Sky25a shuttle](https://app.tinytapeout.com/shuttles/ttsky25a).
+
+#### 2D GDSII Silicon Layout
+<p align="center">
+  <img src="https://camo.githubusercontent.com/cac6e18a82b61a7fb0bae33d039d30e6a5a63dab5986ba3d7df82a8f59b8f89e/68747470733a2f2f666a706f6c6f2e6769746875622e696f2f74696e7971762d7276326130332f6764735f72656e6465722e706e67" alt="RV2A03 GDSII Layout Render" width="550">
+</p>
+
+#### Interactive 3D Silicon Explorer
+Explore the full chip layout, standard cell placement, power distribution grids, and metal interconnect layers in 3D:
+👉 **[Open Interactive 3D WebGL Viewer](https://fjpolo.github.io/tinyqv-rv2a03/)**
 
 ---
 
@@ -492,3 +578,5 @@ Because submodules point to specific commit hashes (detached `HEAD` by default),
 - [TinyQV Architecture (Michael Bell)](https://github.com/MichaelBell/tinyQV)
 - [TinyQV Web Programmer](https://program.tinyqv.com)
 - [NESdev Wiki: 2A03 APU](https://www.nesdev.org/wiki/APU)
+- [Technical Documentation Library](docs/README.md)
+- [Project Cheatsheet](CHEATSHEET.md)
