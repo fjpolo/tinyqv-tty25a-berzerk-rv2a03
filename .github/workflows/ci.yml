@@ -119,7 +119,7 @@ jobs:
       - name: Install Python Simulation Dependencies
         run: |
           pip install --upgrade pip
-          pip install cocotb pytest numpy
+          pip install -r tinyqv-rv2a03/test/requirements.txt numpy
 
       - name: Run RV2A03 APU Hardware cocotb Test Suite
         run: |
