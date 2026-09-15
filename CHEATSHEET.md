@@ -42,6 +42,7 @@ A concise, comprehensive reference guide and command cheatsheet for the **TinyQV
 | **Scan connected Gowin USB cables** | PowerShell / CMD | `.\build_console60k.bat -Scan` |
 | **Open Console 60K Serial Monitor (COM19)** | PowerShell / CMD | `.\serial_monitor_console60k.bat` |
 | **Open Nano 20K Serial Monitor (COM17)** | PowerShell / CMD | `.\serial_monitor.bat` |
+| **Launch Web Serial Dashboard (GUI)** | Double-Click / CMD / PS | `.\launch_dashboard.bat` (or `.\launch_dashboard.ps1`) |
 | **List detected COM ports** | PowerShell | `.\serial_monitor.ps1 -List` |
 | **Run SoC cocotb Simulation** | WSL / Linux Bash | `./run_rv2a03_simulation.sh` |
 | **Run SoC Simulation with VCD waves** | WSL / Linux Bash | `./build_and_sim.sh rv2a03_test 1` |

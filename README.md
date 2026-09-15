@@ -426,6 +426,31 @@ The repository also includes a complete FPGA target for the **Sipeed Tang Consol
 
 ---
 
+### 8. Interactive Web Serial Dashboard (Browser GUI)
+
+The workspace includes a modern, zero-install **Web Serial Dashboard & Visual Synthesizer** located in [`web/`](web/). It interfaces directly with the Tang Console 60K (`COM19`) and Tang Nano 20K (`COM17`) through the native browser Web Serial API.
+
+#### Features
+- **Visual Chromatic Piano**: 1.5-octave interactive keyboard with white and **FamiCom Red** sharp/flat keys, glowing active feedback, mouse/touch clicks, and physical QWERTZ / QWERTY keyboard bindings (`A..K`, `W,E,T,Z/Y,U,O,P`).
+- **Retro Arcade Soundboard**: 8 visual pads triggering authentic NES SFX (*Coin*, *Barrel Drum* with 4 distortion modes, *Jump*, *Laser*, *Explosion*, *1-Up*, *Snare*, and *Distortion Cycle*).
+- **Chiptune Jukebox**: One-click track controls for *BlasNESmous Theme* (Carlos Viola), *Berzerk APU Theme*, and *Zelda Secret Fanfare*.
+- **Real-Time Oscilloscope**: HTML5 Canvas visualizer rendering simulated 2A03 channel waveforms (Pulse 1, Pulse 2, Triangle, Noise) and note frequencies.
+- **Bi-Directional Telemetry**: Parses incoming hardware UART packets to automatically keep UI volume sliders, octave badges, and channel toggles synchronized with physical board button presses.
+
+#### Launching the Dashboard
+Launch with a single click (starts a local server at `http://localhost:8080/web/` and opens your default browser):
+
+```powershell
+# Option A: One-click batch launcher
+.\launch_dashboard.bat
+
+# Option B: PowerShell launcher
+.\launch_dashboard.ps1
+```
+*(Compatible with Google Chrome, Microsoft Edge, and Opera).*
+
+---
+
 ## Submodule Maintenance & Best Practices
 
 ### Updating Submodules to Remote Tracking Branches

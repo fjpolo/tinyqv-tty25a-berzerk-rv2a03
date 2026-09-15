@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyQV RV2A03 NES APU — Interactive Web Dashboard</title>
+  <meta name="description" content="Interactive Web Serial Dashboard & Synthesizer for the TinyQV RV2A03 (Nintendo NES APU) on Tang Console 60K & Nano 20K.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation & Hardware Connection Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-badge">NES 2A03</div>
+        <div class="brand-titles">
+          <h1>TinyQV RV2A03 Synthesizer</h1>
+          <p class="subtitle">Sky25a ASIC & FPGA Hardware Dashboard</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="port-status" id="port-status">
+          <span class="status-indicator disconnected" id="status-indicator"></span>
+          <span class="status-label" id="status-label">DISCONNECTED</span>
+        </div>
+
+        <div class="connection-group">
+          <select id="baud-rate-select" class="baud-select" title="Select Baud Rate">
+            <option value="115200" selected>115200 Baud (Standard)</option>
+            <option value="57600">57600 Baud</option>
+            <option value="38400">38400 Baud</option>
+            <option value="9600">9600 Baud</option>
+          </select>
+
+          <button id="btn-connect" class="btn btn-primary">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            <span id="btn-connect-text">Connect Board</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- Left Column: Synthesizer Controls, Piano & Soundboard -->
+      <section class="panel synth-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">🎹</span>
+            <h2>APU Synthesizer & Piano</h2>
+          </div>
+          <div class="synth-badges">
+            <span class="badge" id="badge-octave">OCTAVE: 4</span>
+            <span class="badge" id="badge-channel">CH: PULSE 1</span>
+            <span class="badge" id="badge-duty">DUTY: 50%</span>
+            <span class="badge" id="badge-vol">VOL: 12/15</span>
+          </div>
+        </div>
+
+        <!-- Channel & Synth Parameter Controls -->
+        <div class="controls-toolbar">
+          <div class="control-block">
+            <label class="control-label">Sound Channel</label>
+            <div class="btn-group channel-selector" id="channel-selector">
+              <button class="btn-toggle active" data-channel="0" data-key="1">
+                <span class="ch-num">1</span> Pulse 1 (Lead)
+              </button>
+              <button class="btn-toggle" data-channel="1" data-key="2">
+                <span class="ch-num">2</span> Pulse 2 (Harm)
+              </button>
+              <button class="btn-toggle" data-channel="2" data-key="3">
+                <span class="ch-num">3</span> Triangle (Bass)
+              </button>
+              <button class="btn-toggle" data-channel="3" data-key="4">
+                <span class="ch-num">4</span> Noise (Perc)
+              </button>
+            </div>
+          </div>
+
+          <div class="control-block">
+            <label class="control-label">Pulse Duty Cycle</label>
+            <div class="btn-group duty-selector" id="duty-selector">
+              <button class="btn-toggle" data-duty="0" title="12.5% Narrow">12.5%</button>
+              <button class="btn-toggle" data-duty="1" title="25.0% Medium">25%</button>
+              <button class="btn-toggle active" data-duty="2" title="50.0% Square">50%</button>
+              <button class="btn-toggle" data-duty="3" title="75.0% Wide">75%</button>
+            </div>
+          </div>
+
+          <div class="control-block sliders-block">
+            <div class="slider-item">
+              <div class="slider-header">
+                <label for="slider-volume">Master Volume</label>
+                <span class="slider-val" id="val-volume">12 / 15</span>
+              </div>
+              <input type="range" id="slider-volume" min="0" max="15" value="12" step="1" class="custom-slider">
+            </div>
+
+            <div class="slider-item">
+              <div class="slider-header">
+                <label for="slider-octave">Octave Shift</label>
+                <span class="slider-val" id="val-octave">Octave 4</span>
+              </div>
+              <div class="stepper-controls">
+                <button class="btn-step" id="btn-octave-down" title="Octave Down (Left Arrow / Comma)">−</button>
+                <input type="range" id="slider-octave" min="2" max="6" value="4" step="1" class="custom-slider">
+                <button class="btn-step" id="btn-octave-up" title="Octave Up (Right Arrow / Period)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Chromatic Piano Keyboard -->
+        <div class="piano-wrapper">
+          <div class="piano-legend">
+            <span>Home row: <strong>A..K</strong> (White Keys)</span>
+            <span>Top row: <strong>W, E, T, Z/Y, U, O, P</strong> (FamiCom Red Keys)</span>
+            <button class="btn-mute-note" id="btn-mute" title="Mute Audio (Spacebar / M)">🔇 Mute Audio</button>
+          </div>
+
+          <div class="piano-keyboard" id="piano-keyboard">
+            <!-- White Keys with Nested Black Keys -->
+            <div class="piano-key white" data-note="0" data-oct-off="0" data-char="a" data-display="C4">
+              <span class="key-name">C4</span>
+              <span class="key-hint">A</span>
+            </div>
+
+            <div class="piano-key black" data-note="1" data-oct-off="0" data-char="w" data-display="C#4" style="left: 6.8%;">
+              <span class="key-name">C#4</span>
+              <span class="key-hint">W</span>
+            </div>
+
+            <div class="piano-key white" data-note="2" data-oct-off="0" data-char="s" data-display="D4">
+              <span class="key-name">D4</span>
+              <span class="key-hint">S</span>
+            </div>
+
+            <div class="piano-key black" data-note="3" data-oct-off="0" data-char="e" data-display="D#4" style="left: 19.3%;">
+              <span class="key-name">D#4</span>
+              <span class="key-hint">E</span>
+            </div>
+
+            <div class="piano-key white" data-note="4" data-oct-off="0" data-char="d" data-display="E4">
+              <span class="key-name">E4</span>
+              <span class="key-hint">D</span>
+            </div>
+
+            <div class="piano-key white" data-note="5" data-oct-off="0" data-char="f" data-display="F4">
+              <span class="key-name">F4</span>
+              <span class="key-hint">F</span>
+            </div>
+
+            <div class="piano-key black" data-note="6" data-oct-off="0" data-char="t" data-display="F#4" style="left: 44.3%;">
+              <span class="key-name">F#4</span>
+              <span class="key-hint">T</span>
+            </div>
+
+            <div class="piano-key white" data-note="7" data-oct-off="0" data-char="g" data-display="G4">
+              <span class="key-name">G4</span>
+              <span class="key-hint">G</span>
+            </div>
+
+            <div class="piano-key black" data-note="8" data-oct-off="0" data-char="z" data-display="G#4" style="left: 56.8%;">
+              <span class="key-name">G#4</span>
+              <span class="key-hint">Z/Y</span>
+            </div>
+
+            <div class="piano-key white" data-note="9" data-oct-off="0" data-char="h" data-display="A4">
+              <span class="key-name">A4</span>
+              <span class="key-hint">H</span>
+            </div>
+
+            <div class="piano-key black" data-note="10" data-oct-off="0" data-char="u" data-display="A#4" style="left: 69.3%;">
+              <span class="key-name">A#4</span>
+              <span class="key-hint">U</span>
+            </div>
+
+            <div class="piano-key white" data-note="11" data-oct-off="0" data-char="j" data-display="B4">
+              <span class="key-name">B4</span>
+              <span class="key-hint">J</span>
+            </div>
+
+            <div class="piano-key white" data-note="0" data-oct-off="1" data-char="k" data-display="C5">
+              <span class="key-name">C5</span>
+              <span class="key-hint">K</span>
+            </div>
+
+            <div class="piano-key black" data-note="1" data-oct-off="1" data-char="o" data-display="C#5" style="left: 88.0%;">
+              <span class="key-name">C#5</span>
+              <span class="key-hint">O</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Retro Soundboard Section -->
+        <div class="soundboard-section">
+          <div class="sub-header">
+            <h3>⚡ Retro Arcade Soundboard</h3>
+            <div class="distortion-badge" id="drum-dist-badge">
+              DRUM: <span id="dist-mode-name">Warm Saturation</span>
+            </div>
+          </div>
+
+          <div class="soundboard-grid">
+            <button class="pad-btn sfx-coin" data-key="c" id="pad-coin">
+              <span class="pad-icon">🪙</span>
+              <span class="pad-name">Coin</span>
+              <span class="pad-key">[C]</span>
+            </button>
+
+            <button class="pad-btn sfx-barrel" data-key="b" id="pad-barrel">
+              <span class="pad-icon">🛢️</span>
+              <span class="pad-name">Barrel Drum</span>
+              <span class="pad-key">[B]</span>
+            </button>
+
+            <button class="pad-btn sfx-jump" data-key="i" id="pad-jump">
+              <span class="pad-icon">🍄</span>
+              <span class="pad-name">Jump</span>
+              <span class="pad-key">[I / 9]</span>
+            </button>
+
+            <button class="pad-btn sfx-laser" data-key="l" id="pad-laser">
+              <span class="pad-icon">🔫</span>
+              <span class="pad-name">Laser</span>
+              <span class="pad-key">[L / 8]</span>
+            </button>
+
+            <button class="pad-btn sfx-explosion" data-key="x" id="pad-explosion">
+              <span class="pad-icon">💥</span>
+              <span class="pad-name">Explosion</span>
+              <span class="pad-key">[X]</span>
+            </button>
+
+            <button class="pad-btn sfx-powerup" data-key="v" id="pad-powerup">
+              <span class="pad-icon">⭐</span>
+              <span class="pad-name">1-Up</span>
+              <span class="pad-key">[V]</span>
+            </button>
+
+            <button class="pad-btn sfx-snare" data-key="n" id="pad-snare">
+              <span class="pad-icon">🥁</span>
+              <span class="pad-name">Snare</span>
+              <span class="pad-key">[N]</span>
+            </button>
+
+            <button class="pad-btn sfx-dist" data-key="0" id="pad-distortion" title="Cycle Barrel Distortion (0:Clean, 1:Warm, 2:Fuzz, 3:Doom)">
+              <span class="pad-icon">🎛️</span>
+              <span class="pad-name">Cycle Distortion</span>
+              <span class="pad-key">[0 / D]</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chiptune Jukebox Section -->
+        <div class="jukebox-section">
+          <div class="sub-header">
+            <h3>🎵 NES Chiptune Jukebox</h3>
+            <span class="jukebox-state" id="jukebox-state">IDLE</span>
+          </div>
+
+          <div class="jukebox-grid">
+            <div class="jukebox-card">
+              <div class="track-info">
+                <h4>BlasNESmous Theme</h4>
+                <p>Carlos Viola / 8-bit Demake by @fjpolo (4 APU Channels)</p>
+              </div>
+              <button class="btn btn-accent btn-play-track" data-key="5" id="btn-play-blasnesmous">
+                <span>▶ Play [5]</span>
+              </button>
+            </div>
+
+            <div class="jukebox-card">
+              <div class="track-info">
+                <h4>Berzerk APU Theme</h4>
+                <p>Polyphonic Pulse 1 Lead & Triangle Bass (2 Channels)</p>
+              </div>
+              <button class="btn btn-accent btn-play-track" data-key="6" id="btn-play-berzerk">
+                <span>▶ Play [6]</span>
+              </button>
+            </div>
+
+            <div class="jukebox-card">
+              <div class="track-info">
+                <h4>Zelda Secret Fanfare</h4>
+                <p>Dual Square Counterpoint Arpeggio (2 Channels)</p>
+              </div>
+              <button class="btn btn-accent btn-play-track" data-key="7" id="btn-play-zelda">
+                <span>▶ Play [7]</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Real-Time Oscilloscope, Hardware Telemetry & Diagnostics -->
+      <section class="panel telemetry-panel">
+        
+        <!-- Live APU Waveform Oscilloscope -->
+        <div class="oscilloscope-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="pulse-dot"></span>
+              <h3>Hardware APU Oscilloscope</h3>
+            </div>
+            <div class="scope-legend">
+              <span class="legend-item"><span class="legend-color p1"></span>Pulse 1</span>
+              <span class="legend-item"><span class="legend-color p2"></span>Pulse 2</span>
+              <span class="legend-item"><span class="legend-color tri"></span>Triangle</span>
+              <span class="legend-item"><span class="legend-color noise"></span>Noise</span>
+            </div>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas id="scope-canvas" width="600" height="150"></canvas>
+            <div class="scope-overlay" id="scope-overlay">
+              <span class="freq-tag" id="freq-tag">A4 (440 Hz)</span>
+              <span class="sample-tag" id="sample-tag">Mixed Peak: +2048</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Serial Terminal & Register Inspector -->
+        <div class="terminal-card">
+          <div class="card-header terminal-header">
+            <div class="terminal-title">
+              <span class="term-dot red"></span>
+              <span class="term-dot yellow"></span>
+              <span class="term-dot green"></span>
+              <span class="terminal-label">UART Event Stream (115200 8N1)</span>
+            </div>
+
+            <div class="terminal-tools">
+              <button class="btn-tool" id="btn-dump-regs" title="Read all 2A03 hardware registers [R]">Dump Regs [R]</button>
+              <button class="btn-tool" id="btn-self-test" title="Run 5/5 automated hardware verification testsuite [*]">Run Self-Test [*]</button>
+              <button class="btn-tool" id="btn-clear-term" title="Clear terminal screen">Clear</button>
+            </div>
+          </div>
+
+          <div class="terminal-screen" id="terminal-screen">
+            <div class="terminal-line system">Waiting for hardware connection...</div>
+            <div class="terminal-line system">Click "Connect Board" above to select COM19 (Console 60K) or COM17 (Nano 20K).</div>
+          </div>
+
+          <div class="terminal-footer">
+            <span class="footer-info">Baud: 115200 | Buffer: 4096B | Auto-Scroll: ON</span>
+            <button class="btn-help-guide" id="btn-help-guide" title="Show RV2A03 Help Guide in terminal [?]">Help Guide [?]</button>
+          </div>
+        </div>
+
+        <!-- Hardware Specs & Architecture Quick Reference -->
+        <div class="specs-card">
+          <h4>Tang Console 60K & Nano 20K Diagnostics</h4>
+          <div class="specs-grid">
+            <div class="spec-cell">
+              <span class="spec-name">SoC Clock</span>
+              <span class="spec-val">27.000 MHz (PLLA)</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-name">APU Peripheral</span>
+              <span class="spec-val">#15 (Index 14)</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-name">BRAM Limit</span>
+              <span class="spec-val">32 KB (Autonomous Boot)</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-name">Audio Output</span>
+              <span class="spec-val">Delta-Sigma / I2S PAM8403</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>TinyQV Sky25a Berzerk — RV2A03 NES APU Integration</span>
+      <span class="sep">•</span>
+      <span>Designed by <a href="https://github.com/fjpolo" target="_blank" rel="noopener">@fjpolo</a></span>
+      <span class="sep">•</span>
+      <span>Apache 2.0 License</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

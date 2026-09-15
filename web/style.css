@@ -1,0 +1,1207 @@
+/* --------------------------------------------------------------------------
+ * TinyQV RV2A03 NES APU Web Serial Dashboard — Cyber-NES / Synthwave Design
+ * -------------------------------------------------------------------------- */
+
+:root {
+  /* Color Palette */
+  --bg-primary: #0a0d14;
+  --bg-secondary: #121722;
+  --bg-card: rgba(22, 27, 39, 0.75);
+  --bg-card-hover: rgba(30, 37, 54, 0.85);
+  --bg-glass: rgba(18, 23, 34, 0.65);
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(229, 37, 33, 0.5);
+  --border-glow: rgba(0, 240, 255, 0.4);
+
+  /* Neon Retro Accents */
+  --nes-red: #e52521;
+  --nes-red-glow: rgba(229, 37, 33, 0.4);
+  --nes-red-light: #ff4b4b;
+  --arcade-cyan: #00f0ff;
+  --arcade-cyan-glow: rgba(0, 240, 255, 0.35);
+  --famicom-gold: #ffd700;
+  --famicom-gold-glow: rgba(255, 215, 0, 0.35);
+  --emerald: #00ff88;
+  --emerald-glow: rgba(0, 255, 136, 0.35);
+  --purple-glow: #bd00ff;
+
+  /* Channel Colors */
+  --ch-pulse1: #00f0ff;
+  --ch-pulse2: #00b4d8;
+  --ch-triangle: #00ff88;
+  --ch-noise: #ffd700;
+
+  /* Typography */
+  --font-retro: 'Press Start 2P', monospace;
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+
+  /* Shadows & Glass */
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  --shadow-glow-red: 0 0 16px var(--nes-red-glow);
+  --shadow-glow-cyan: 0 0 16px var(--arcade-cyan-glow);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(229, 37, 33, 0.15), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(0, 240, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, #0a0d14 0%, #080a0f 100%);
+  background-attachment: fixed;
+  color: #e2e8f0;
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* App Wrapper */
+.app-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+ * Header & Hardware Connection Bar
+ * -------------------------------------------------------------------------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  position: sticky;
+  top: 16px;
+  z-index: 100;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.app-header:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-badge {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  background: linear-gradient(135deg, var(--nes-red), #990000);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px var(--nes-red-glow);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  animation: badge-pulse 3s infinite alternate ease-in-out;
+}
+
+@keyframes badge-pulse {
+  0% { box-shadow: 0 2px 8px var(--nes-red-glow); }
+  100% { box-shadow: 0 4px 20px rgba(229, 37, 33, 0.6); }
+}
+
+.brand-titles h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #ffffff 40%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-titles .subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.port-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: 30px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.connected {
+  background: var(--emerald);
+  box-shadow: 0 0 10px var(--emerald-glow);
+}
+
+.status-indicator.disconnected {
+  background: var(--nes-red);
+  box-shadow: 0 0 10px var(--nes-red-glow);
+}
+
+.status-label {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.connection-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.baud-select {
+  background: rgba(18, 23, 34, 0.8);
+  border: 1px solid var(--border-subtle);
+  color: #cbd5e1;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.baud-select:focus {
+  border-color: var(--arcade-cyan);
+}
+
+/* Primary Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  outline: none;
+  user-select: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--nes-red) 0%, #b3100d 100%);
+  color: white;
+  box-shadow: 0 4px 14px var(--nes-red-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 37, 33, 0.6);
+  background: linear-gradient(135deg, var(--nes-red-light) 0%, var(--nes-red) 100%);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary.btn-disconnect {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary.btn-disconnect:hover {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+/* --------------------------------------------------------------------------
+ * Main Grid Layout
+ * -------------------------------------------------------------------------- */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 22px;
+}
+
+@media (max-width: 1080px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Styles */
+.panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-shadow: var(--shadow-card);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 16px;
+}
+
+.panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-icon {
+  font-size: 1.4rem;
+}
+
+.panel-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #fff;
+}
+
+.synth-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+#badge-channel {
+  color: var(--arcade-cyan);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+#badge-vol {
+  color: var(--famicom-gold);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+ * Synthesizer Controls Toolbar
+ * -------------------------------------------------------------------------- */
+
+.controls-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  background: rgba(14, 18, 28, 0.7);
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+}
+
+.control-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.btn-group {
+  display: flex;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-toggle {
+  flex: 1;
+  padding: 9px 8px;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.btn-toggle:last-child {
+  border-right: none;
+}
+
+.btn-toggle .ch-num {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.btn-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.btn-toggle.active {
+  background: linear-gradient(135deg, rgba(229, 37, 33, 0.85), rgba(179, 16, 13, 0.85));
+  color: white;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.channel-selector .btn-toggle.active[data-channel="0"] {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.4), rgba(0, 150, 255, 0.4));
+  border-color: var(--arcade-cyan);
+  color: #fff;
+}
+
+.channel-selector .btn-toggle.active[data-channel="1"] {
+  background: linear-gradient(135deg, rgba(0, 180, 216, 0.4), rgba(0, 119, 182, 0.4));
+  border-color: var(--ch-pulse2);
+  color: #fff;
+}
+
+.channel-selector .btn-toggle.active[data-channel="2"] {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.4), rgba(0, 180, 90, 0.4));
+  border-color: var(--emerald);
+  color: #fff;
+}
+
+.channel-selector .btn-toggle.active[data-channel="3"] {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(200, 150, 0, 0.4));
+  border-color: var(--famicom-gold);
+  color: #fff;
+}
+
+/* Sliders */
+.sliders-block {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 680px) {
+  .sliders-block {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.slider-val {
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  color: #f1f5f9;
+}
+
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-step:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--arcade-cyan);
+}
+
+.custom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #1e293b;
+  outline: none;
+  transition: background 0.2s ease;
+}
+
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--nes-red);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--nes-red-glow);
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: var(--nes-red-light);
+}
+
+/* --------------------------------------------------------------------------
+ * Interactive Piano Keyboard
+ * -------------------------------------------------------------------------- */
+
+.piano-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(10, 14, 22, 0.9);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.piano-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #64748b;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.piano-legend strong {
+  color: #cbd5e1;
+}
+
+.btn-mute-note {
+  background: rgba(229, 37, 33, 0.15);
+  border: 1px solid rgba(229, 37, 33, 0.35);
+  color: #fca5a5;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-mute-note:hover {
+  background: rgba(229, 37, 33, 0.3);
+  border-color: var(--nes-red);
+}
+
+.piano-keyboard {
+  display: flex;
+  position: relative;
+  height: 180px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+.piano-key {
+  cursor: pointer;
+  transition: all 0.08s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+.piano-key.white {
+  flex: 1;
+  background: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 90%, #94a3b8 100%);
+  border: 1px solid #64748b;
+  border-radius: 0 0 6px 6px;
+  z-index: 1;
+}
+
+.piano-key.white .key-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.piano-key.white .key-hint {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+.piano-key.black {
+  position: absolute;
+  width: 7.2%;
+  height: 60%;
+  background: linear-gradient(180deg, #b91c1c 0%, #881313 70%, #580a0a 100%);
+  border: 1px solid #3b0707;
+  border-radius: 0 0 5px 5px;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(136, 19, 19, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.piano-key.black .key-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.piano-key.black .key-hint {
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--famicom-gold);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-top: 2px;
+  border: 1px solid rgba(255, 215, 0, 0.25);
+}
+
+/* Pressed States */
+.piano-key.white:active, .piano-key.white.active {
+  background: linear-gradient(180deg, #00f0ff 0%, #00b4d8 100%);
+  box-shadow: 0 0 20px var(--arcade-cyan-glow);
+  transform: translateY(2px);
+}
+
+.piano-key.white.active .key-name, .piano-key.white.active .key-hint {
+  color: #fff;
+}
+
+.piano-key.black:active, .piano-key.black.active {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 70%, #991b1b 100%);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.9), inset 0 0 8px rgba(0, 0, 0, 0.5);
+  transform: translateY(2px);
+}
+
+/* --------------------------------------------------------------------------
+ * Retro Soundboard Section
+ * -------------------------------------------------------------------------- */
+
+.sub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sub-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.distortion-badge {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 6px;
+  color: var(--famicom-gold);
+}
+
+.soundboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .soundboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pad-btn {
+  background: rgba(18, 23, 34, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.pad-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.pad-btn:hover {
+  transform: translateY(-3px);
+  background: rgba(28, 36, 52, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pad-btn:active, .pad-btn.active {
+  transform: translateY(1px);
+  box-shadow: 0 0 16px var(--arcade-cyan-glow);
+}
+
+.pad-icon {
+  font-size: 1.4rem;
+}
+
+.pad-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.pad-key {
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* Soundboard Color Accents */
+.sfx-coin::before { background: var(--famicom-gold); }
+.sfx-coin:hover { border-color: rgba(255, 215, 0, 0.4); box-shadow: 0 4px 14px var(--famicom-gold-glow); }
+
+.sfx-barrel::before { background: var(--nes-red); }
+.sfx-barrel:hover { border-color: rgba(229, 37, 33, 0.4); box-shadow: 0 4px 14px var(--nes-red-glow); }
+
+.sfx-jump::before { background: var(--emerald); }
+.sfx-jump:hover { border-color: rgba(0, 255, 136, 0.4); box-shadow: 0 4px 14px var(--emerald-glow); }
+
+.sfx-laser::before { background: var(--arcade-cyan); }
+.sfx-laser:hover { border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 4px 14px var(--arcade-cyan-glow); }
+
+.sfx-explosion::before { background: #ff6b35; }
+.sfx-powerup::before { background: #d946ef; }
+.sfx-snare::before { background: #38bdf8; }
+.sfx-dist::before { background: #a855f7; }
+
+/* --------------------------------------------------------------------------
+ * Chiptune Jukebox Section
+ * -------------------------------------------------------------------------- */
+
+.jukebox-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jukebox-state {
+  font-family: var(--font-retro);
+  font-size: 9px;
+  color: var(--emerald);
+  padding: 4px 8px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 4px;
+}
+
+.jukebox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .jukebox-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jukebox-card {
+  background: rgba(14, 18, 28, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.jukebox-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(20, 26, 40, 0.85);
+}
+
+.track-info h4 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.track-info p {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 150, 255, 0.2));
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: var(--arcade-cyan);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-accent:hover {
+  background: linear-gradient(135deg, var(--arcade-cyan) 0%, #00b4d8 100%);
+  color: #0a0d14;
+  box-shadow: 0 4px 14px var(--arcade-cyan-glow);
+  transform: translateY(-2px);
+}
+
+.btn-accent.playing {
+  background: linear-gradient(135deg, var(--nes-red), #b3100d);
+  color: white;
+  border-color: var(--nes-red);
+  box-shadow: 0 0 14px var(--nes-red-glow);
+  animation: pulse-red 1.5s infinite alternate;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 8px var(--nes-red-glow); }
+  100% { box-shadow: 0 0 20px rgba(229, 37, 33, 0.8); }
+}
+
+/* --------------------------------------------------------------------------
+ * Right Column: Oscilloscope, Terminal & Specs
+ * -------------------------------------------------------------------------- */
+
+.telemetry-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Oscilloscope Card */
+.oscilloscope-card {
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--arcade-cyan);
+  box-shadow: 0 0 8px var(--arcade-cyan);
+  animation: pulse-scope 2s infinite ease-in-out;
+}
+
+@keyframes pulse-scope {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+.card-title h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.scope-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-color.p1 { background: var(--ch-pulse1); }
+.legend-color.p2 { background: var(--ch-pulse2); }
+.legend-color.tri { background: var(--ch-triangle); }
+.legend-color.noise { background: var(--ch-noise); }
+
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  background: #06080d;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  overflow: hidden;
+}
+
+#scope-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.scope-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.freq-tag, .sample-tag {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--arcade-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+/* --------------------------------------------------------------------------
+ * Terminal Screen & Register Inspector
+ * -------------------------------------------------------------------------- */
+
+.terminal-card {
+  background: #070a0f;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.terminal-header {
+  background: #0d121c;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.term-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.term-dot.red { background: #ef4444; }
+.term-dot.yellow { background: #f59e0b; }
+.term-dot.green { background: #10b981; }
+
+.terminal-label {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 6px;
+}
+
+.terminal-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-tool {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-tool:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: var(--arcade-cyan);
+}
+
+.terminal-screen {
+  height: 280px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #38bdf8;
+  background: 
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 4px, 6px 100%;
+}
+
+.terminal-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 2px;
+}
+
+.terminal-line.system {
+  color: #94a3b8;
+}
+
+.terminal-line.sfx {
+  color: var(--famicom-gold);
+  font-weight: 600;
+}
+
+.terminal-line.jukebox {
+  color: var(--arcade-cyan);
+  font-weight: 600;
+}
+
+.terminal-line.test-pass {
+  color: var(--emerald);
+  font-weight: 700;
+}
+
+.terminal-line.error {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.terminal-footer {
+  background: #0a0e17;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-family: var(--font-code);
+}
+
+.btn-help-guide {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: #94a3b8;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-help-guide:hover {
+  color: #fff;
+  border-color: var(--arcade-cyan);
+}
+
+/* --------------------------------------------------------------------------
+ * Hardware Specs Diagnostics Card
+ * -------------------------------------------------------------------------- */
+
+.specs-card {
+  background: rgba(14, 18, 28, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.specs-card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.spec-cell {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-name {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.spec-val {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+ * Footer
+ * -------------------------------------------------------------------------- */
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #64748b;
+  padding-top: 10px;
+}
+
+.app-footer a {
+  color: var(--arcade-cyan);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+}
+
+.app-footer .sep {
+  color: #334155;
+}
