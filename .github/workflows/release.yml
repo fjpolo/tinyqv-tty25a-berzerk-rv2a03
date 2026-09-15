@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release Binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache TinyQV RISC-V Toolchain
+        id: cache-toolchain
+        uses: actions/cache@v4
+        with:
+          path: /opt/tinyQV
+          key: tinyqv-toolchain-15.1.0-tqv-2.0
+
+      - name: Install TinyQV RISC-V Toolchain
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          echo "Downloading TinyQV RISC-V GNU toolchain (GCC 15 rv32ec_zcb_zicond)..."
+          sudo mkdir -p /opt/tinyQV
+          curl -sSL https://github.com/MichaelBell/riscv-gnu-toolchain/releases/download/15.1.0-tqv-2.0/riscv32ec-15.1.0-tqv-2.0.tar.gz | sudo tar -xz -C /opt/tinyQV --strip-components=1
+
+      - name: Add Toolchain to PATH
+        run: |
+          echo "/opt/tinyQV/bin" >> $GITHUB_PATH
+          echo "RISCV_TOOLCHAIN=/opt/tinyQV" >> $GITHUB_ENV
+
+      - name: Build TinyQV SDK Runtime
+        run: |
+          make -C tinyQV-sdk-fjpolo clean
+          make -C tinyQV-sdk-fjpolo
+
+      - name: Build Production Firmware
+        run: |
+          chmod +x ./build_firmware.sh
+          ./build_firmware.sh --target all --clean
+
+      - name: Package Firmware Binaries Archive
+        run: |
+          mkdir -p release-pkg
+          cp tinyQV-projects/rv2a03_fpga/rv2a03_fpga.bin release-pkg/
+          cp tinyQV-projects/rv2a03_fpga/rv2a03_fpga.hex release-pkg/
+          cp tinyQV-projects/rv2a03_asic/rv2a03_asic.bin release-pkg/
+          cp tinyQV-projects/rv2a03_asic/rv2a03_asic.hex release-pkg/
+          cp tinyQV-projects/rv2a03_test/rv2a03_test.hex release-pkg/
+          cd release-pkg
+          zip -9 tinyqv_rv2a03_firmware_${{ github.ref_name }}.zip *
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-pkg/rv2a03_fpga.bin
+            release-pkg/rv2a03_fpga.hex
+            release-pkg/rv2a03_asic.bin
+            release-pkg/rv2a03_asic.hex
+            release-pkg/rv2a03_test.hex
+            release-pkg/tinyqv_rv2a03_firmware_${{ github.ref_name }}.zip

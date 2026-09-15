@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, dev/* ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    name: Build & Validate Firmware (FPGA & ASIC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache TinyQV RISC-V Toolchain
+        id: cache-toolchain
+        uses: actions/cache@v4
+        with:
+          path: /opt/tinyQV
+          key: tinyqv-toolchain-15.1.0-tqv-2.0
+
+      - name: Install TinyQV RISC-V Toolchain
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          echo "Downloading TinyQV RISC-V GNU toolchain (GCC 15 rv32ec_zcb_zicond)..."
+          sudo mkdir -p /opt/tinyQV
+          curl -sSL https://github.com/MichaelBell/riscv-gnu-toolchain/releases/download/15.1.0-tqv-2.0/riscv32ec-15.1.0-tqv-2.0.tar.gz | sudo tar -xz -C /opt/tinyQV --strip-components=1
+
+      - name: Add Toolchain to PATH
+        run: |
+          echo "/opt/tinyQV/bin" >> $GITHUB_PATH
+          echo "RISCV_TOOLCHAIN=/opt/tinyQV" >> $GITHUB_ENV
+
+      - name: Verify RISC-V GCC Version
+        run: |
+          riscv32-unknown-elf-gcc --version
+
+      - name: Build TinyQV SDK Runtime Libraries
+        run: |
+          make -C tinyQV-sdk-fjpolo clean
+          make -C tinyQV-sdk-fjpolo
+
+      - name: Build All Firmware Targets (FPGA, Test, ASIC)
+        run: |
+          chmod +x ./build_firmware.sh
+          ./build_firmware.sh --target all --clean
+
+      - name: Check Binary Size Limit (< 32 KB BRAM Ceiling)
+        run: |
+          echo "============================================================"
+          echo "  Validating Firmware Binary Sizes against 32 KB BRAM limit"
+          echo "============================================================"
+          for bin in tinyQV-projects/rv2a03_fpga/rv2a03_fpga.bin \
+                     tinyQV-projects/rv2a03_test/rv2a03_test.bin \
+                     tinyQV-projects/rv2a03_asic/rv2a03_asic.bin; do
+            size=$(stat -c%s "$bin")
+            printf "%-45s : %6d bytes (limit: 32768 bytes)\n" "$bin" "$size"
+            if [ "$size" -gt 32768 ]; then
+              echo "[FATAL] $bin exceeds 32 KB BRAM ceiling! ($size > 32768 bytes)"
+              exit 1
+            fi
+          done
+          echo "[OK] All firmware binaries safely fit within 32 KB BRAM."
+
+      - name: Verify FPGA BRAM Hex Synchronization
+        run: |
+          echo "Verifying Tang Console 60K and Nano 20K hex files are in sync with firmware..."
+          diff -u tinyQV-projects/rv2a03_test/rv2a03_test.hex FPGA/GOWIN/console60k/src/rv2a03_test.hex
+          diff -u tinyQV-projects/rv2a03_test/rv2a03_test.hex FPGA/GOWIN/nano20k/src/rv2a03_test.hex
+          echo "[OK] FPGA hex memory initialization files are perfectly in sync."
+
+      - name: Upload Firmware Binaries Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyqv-rv2a03-binaries
+          path: |
+            tinyQV-projects/rv2a03_fpga/rv2a03_fpga.bin
+            tinyQV-projects/rv2a03_fpga/rv2a03_fpga.hex
+            tinyQV-projects/rv2a03_fpga/rv2a03_fpga.elf
+            tinyQV-projects/rv2a03_asic/rv2a03_asic.bin
+            tinyQV-projects/rv2a03_asic/rv2a03_asic.hex
+            tinyQV-projects/rv2a03_asic/rv2a03_asic.elf
+            tinyQV-projects/rv2a03_test/rv2a03_test.bin
+            tinyQV-projects/rv2a03_test/rv2a03_test.hex
+            tinyQV-projects/rv2a03_test/rv2a03_test.elf
+          retention-days: 30
+
+  simulation:
+    name: Hardware RTL Simulation (cocotb)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Install Python Simulation Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install cocotb pytest numpy
+
+      - name: Run RV2A03 APU Hardware cocotb Test Suite
+        run: |
+          cd tinyqv-rv2a03/test
+          make clean
+          make
+          cat results.xml
+
+      - name: Upload Simulation Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cocotb-test-results
+          path: tinyqv-rv2a03/test/results.xml
+          retention-days: 14
+
+  lint:
+    name: Verilog Syntax & Port Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Icarus Verilog for Linting
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Lint Peripheral & APU Core
+        run: |
+          echo "Checking RV2A03 Verilog modules with iverilog..."
+          iverilog -g2012 -t null \
+            -I tinyqv-rv2a03/src \
+            tinyqv-rv2a03/src/peripheral.v \
+            tinyqv-rv2a03/src/user_peripherals/RV2A03/apu.v
+          echo "[OK] RV2A03 Verilog syntax clean."

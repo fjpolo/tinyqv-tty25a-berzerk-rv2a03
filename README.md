@@ -1,5 +1,8 @@
 # TinyQV Sky25a Berzerk – RV2A03 Integration Workspace
 
+[![CI](https://github.com/fjpolo/tinyqv-tty25a-berzerk-rv2a03/actions/workflows/ci.yml/badge.svg)](https://github.com/fjpolo/tinyqv-tty25a-berzerk-rv2a03/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 Welcome to the multi-repository workspace for the **RV2A03** (Nintendo NES NTSC Ricoh 2A03 APU audio peripheral) integrated into the **TinyQV** RISC-V System-on-Chip (SoC) for the [Tiny Tapeout Sky25a shuttle](https://app.tinytapeout.com/shuttles/ttsky25a) ("Berzerk" instance).
 
 This repository serves as an umbrella superproject coordinating the hardware peripheral IP, the full SoC ASIC integration, the C software development kit (SDK), and the pre-built RISC-V toolchain.
